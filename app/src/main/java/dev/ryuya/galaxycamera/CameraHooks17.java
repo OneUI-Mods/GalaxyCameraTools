@@ -15,8 +15,6 @@ final class CameraHooks17 {
   private final HostRuntime rt;
   private volatile WeakReference<Activity> activity = new WeakReference<>(null);
   private static final Range<Integer> PREVIEW_60 = new Range<>(60, 60);
-  private static final CaptureRequest.Key<Integer> PREVIEW_PIPELINE =
-      new CaptureRequest.Key<>("samsung.android.control.shootingMode", Integer.class);
   private static final CaptureRequest.Key<Integer> CAMERA_HEAT =
       new CaptureRequest.Key<>("samsung.android.control.overHeatHint", Integer.class);
 
@@ -112,19 +110,6 @@ final class CameraHooks17 {
             applyPreviewFps(call.thisObject);
           }
         });
-    ModernHook.findAndHookMethod(
-        photoMaker,
-        "startPreviewRepeating",
-        new ModernHook.Callback() {
-          protected void afterHookedMethod(ModernHook.Param call) {
-            if (call.hasThrowable() || !rt.enabled(ConfigProvider.FPS) || mode() != 0) return;
-            try {
-              Object device = Reflect.get(call.thisObject, "mCamDevice");
-              ModernHook.log("Preview targets: " + Reflect.get(device, "i0"));
-            } catch (ReflectiveOperationException ignored) {
-            }
-          }
-        });
     Class<?> callback =
         Class.forName("com.samsung.android.camera.core2.maker.PhotoMakerBase$6", false, l);
     Class<?> cap = Class.forName("com.samsung.android.camera.core2.CamCapability", false, l);
@@ -139,6 +124,7 @@ final class CameraHooks17 {
           }
           return value;
         });
+    new PhotoPreviewStream17(rt, this).install();
     new PhotoZoomTiming17(rt, this).install();
     new VideoModes17(rt, this).install();
     new UltraWideLight17(rt).install();
@@ -271,7 +257,6 @@ final class CameraHooks17 {
           continue;
         }
         highRate = true;
-        builder.set(PREVIEW_PIPELINE, 3);
         if (!armed) {
           rt.guard.arm();
           armed = true;
@@ -344,15 +329,14 @@ final class CameraHooks17 {
             String.format(
                 Locale.ROOT,
                 "Photo zoom preview: %.1f fps; intervals=%d; over25ms=%d; requested=%s; result=%s;"
-                    + " exposure=%s; cameraHeat=%s; previewPipeline=%s",
+                    + " exposure=%s; cameraHeat=%s",
                 zoomIntervals * 1_000_000_000d / zoomTotalNanos,
                 zoomIntervals,
                 zoomSlowIntervals,
                 zoomRequest,
                 zoomResultRange,
                 zoomExposure,
-                zoomHeat,
-                result.getRequest().get(PREVIEW_PIPELINE)));
+                zoomHeat));
       zoomUntil = 0;
       return;
     }

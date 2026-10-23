@@ -46,4 +46,6 @@
   <string name="camera2_summary">Makes supported additional rear camera IDs visible in ordinary camera apps selected in Vector. Enable the module for each camera app, then restart that app. Camera permission is still required. This does not add unsupported resolutions or frame rates, and apps may not offer a lens selector.</string>
     <string name="lens_motion_title">Smooth lens switching</string>
     <string name="lens_motion_summary">Eases photo and video lens changes, including Super Steady and horizontal lock. Slightly longer transitions make acceleration and deceleration easier to see.</string>
+<string name="light_preview_title">Lighter photo preview</string>
+<string name="light_preview_summary">Uses a lower, supported preview resolution to reduce rendering load. Open the camera again to apply. Saved photo and video resolutions are unchanged.</string>
 </resources>

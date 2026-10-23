@@ -46,4 +46,6 @@
   <string name="camera2_summary">Vectorで選択した一般のカメラアプリへ、対応する追加の背面カメラIDを公開します。使うカメラアプリをモジュールの対象に追加し、そのアプリを開き直してください。カメラ権限は必要です。非対応の解像度やfpsは追加しません。アプリ側にレンズ選択がない場合もあります。</string>
     <string name="lens_motion_title">レンズ切り替えを滑らかにする</string>
     <string name="lens_motion_summary">写真・動画のレンズ切り替えに加減速を加えます。スーパー手ブレ補正・水平ロックにも適用し、変化を感じやすいよう少し長めに動かします。</string>
+<string name="light_preview_title">写真プレビューを軽くする</string>
+<string name="light_preview_summary">対応する範囲でプレビューの解像度を下げ、描画の負荷を抑えます。カメラを開き直すと反映されます。保存する写真・動画の解像度は維持します。</string>
 </resources>

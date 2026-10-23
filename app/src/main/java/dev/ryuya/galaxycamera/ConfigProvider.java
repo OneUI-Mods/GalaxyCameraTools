@@ -20,10 +20,11 @@ public final class ConfigProvider extends ContentProvider {
       FOCUS = "flash_focus_hold",
       PANEL_LIGHT = "camera_quick_panel_light",
       CAMERA2 = "camera2_extra_lenses",
-      LENS_MOTION = "camera_lens_animation";
+      LENS_MOTION = "camera_lens_animation",
+      LIGHT_PREVIEW = "light_photo_preview";
   static final Set<String> HOSTS = Set.of(CAMERA, ASSISTANT, EXPERT, SYSTEM_UI);
   static final String[] KEYS = {
-    FPS, VIDEO, ANIMATION, LIGHT, FOCUS, PANEL_LIGHT, CAMERA2, LENS_MOTION
+    FPS, VIDEO, ANIMATION, LIGHT, FOCUS, PANEL_LIGHT, CAMERA2, LENS_MOTION, LIGHT_PREVIEW
   };
   static final Uri URI = Uri.parse("content://dev.ryuya.galaxycamera.config");
 
