@@ -109,6 +109,15 @@ final class CameraHooks17 {
     }
   }
 
+  int backVideoResolution() throws ReflectiveOperationException {
+    Activity a = activity.get();
+    if (a == null) return Integer.MIN_VALUE;
+    Object settings = Reflect.get(a, "j");
+    return (int)
+        Reflect.method(settings.getClass(), "d", settingsKey)
+            .invoke(settings, Reflect.value(settingsKey, "BACK_CAMCORDER_RESOLUTION"));
+  }
+
   private void previewRequest(ModernHook.Param p, Object maker) throws Exception {
     if (p.args[0] != Reflect.get(maker, "mPreviewRequestBuilderMap")) return;
     int type = (int) Reflect.call(maker, "getMakerType");

@@ -11,6 +11,7 @@ import java.util.*;
 final class AssistantUi17 {
   private final HostRuntime rt;
   private final Map<Object, State> states = new WeakHashMap<>();
+  private WeakReference<Object> resumed = new WeakReference<>(null);
   private Class<?> preference, category, changeListener;
 
   AssistantUi17(HostRuntime runtime) {
@@ -46,10 +47,22 @@ final class AssistantUi17 {
             states.remove(p.thisObject);
           }
         });
+    rt.onChanged(
+        () -> {
+          Object current = resumed.get();
+          if (current != null)
+            try {
+              bind(current);
+            } catch (Throwable e) {
+              rt.fail(e);
+            }
+        });
     rt.ready();
   }
 
   private void bind(Object fragment) throws Exception {
+    resumed = new WeakReference<>(fragment);
+    if (!rt.available()) return;
     Object screen = Reflect.call(fragment, "getPreferenceScreen");
     if (screen == null) return;
     State state = states.get(fragment);
