@@ -193,6 +193,7 @@ final class PhotoZoomTiming17 {
     final int duration, nativeDuration;
     final Field generationField, runningField;
     final Method writeZoom, updateButtons, updateLabel;
+    final ZoomRequestQueue requests;
     long started, sampledAt;
     // A 120 Hz panel must not double the requests sent to a 60 fps camera stream.
     static final long MIN_SAMPLE_INTERVAL_NANOS = 16_000_000L;
@@ -217,6 +218,18 @@ final class PhotoZoomTiming17 {
       updateButtons = Reflect.method(selection.view.getClass(), "C2", int.class);
       updateLabel = Reflect.method(selection.view.getClass(), "N2", int.class);
       previousFrameRate = selection.view.getRequestedFrameRate();
+      requests =
+          new ZoomRequestQueue(
+              nativeHandler::post,
+              value -> writeZoom.invoke(settings, value, zoomKey),
+              () -> runtime.main.post(this::complete),
+              error ->
+                  runtime.main.post(
+                      () -> {
+                        if (stopped) return;
+                        returnToNative();
+                        runtime.fail(error);
+                      }));
     }
 
     void start() {
@@ -259,21 +272,36 @@ final class PhotoZoomTiming17 {
                         curve, LensMotionTiming.curveTime(elapsed, duration, nativeDuration))
                     * 1000);
         if (value != lastZoom) {
-          writeZoom.invoke(settings, value, zoomKey);
           updateButtons.invoke(selection.view, value);
           updateLabel.invoke(selection.view, value);
           lastZoom = value;
           frames++;
+          requests.submit(value, elapsed >= duration);
+        } else if (elapsed >= duration) {
+          requests.submit(value, true);
         }
-        if (elapsed >= duration) {
-          stop();
-          ((Handler) Reflect.get(selection.view, "L"))
-              .post((Runnable) Reflect.get(selection.view, "S"));
-          ModernHook.log("Photo zoom: completed; distinct display steps=" + frames);
-        } else {
+        if (elapsed < duration) {
           Choreographer.getInstance().postFrameCallback(this);
         }
       } catch (Throwable error) {
+        returnToNative();
+        runtime.fail(error);
+      }
+    }
+
+    private void complete() {
+      if (stopped) return;
+      try {
+        if (generationField.getInt(selection.view) != selection.generation
+            || !runningField.getBoolean(selection.view)) {
+          stop();
+          return;
+        }
+        stop();
+        ((Handler) Reflect.get(selection.view, "L"))
+            .post((Runnable) Reflect.get(selection.view, "S"));
+        ModernHook.log("Lens motion: completed; display samples=" + frames);
+      } catch (ReflectiveOperationException error) {
         returnToNative();
         runtime.fail(error);
       }
@@ -301,6 +329,7 @@ final class PhotoZoomTiming17 {
 
     void stop() {
       stopped = true;
+      requests.cancel();
       Choreographer.getInstance().removeFrameCallback(this);
       selection.view.setRequestedFrameRate(previousFrameRate);
       if (motion == this) motion = null;
