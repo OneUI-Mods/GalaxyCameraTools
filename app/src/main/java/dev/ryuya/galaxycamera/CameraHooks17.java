@@ -21,6 +21,11 @@ final class CameraHooks17 {
       new java.util.concurrent.ConcurrentHashMap<>();
   private volatile int thermalStatus;
   private long nextStatisticsRead;
+  private volatile java.util.function.BiConsumer<Object, TotalCaptureResult> focusSamples;
+  private final Map<String, Boolean> physicalFpsSupport =
+      new java.util.concurrent.ConcurrentHashMap<>();
+  private String reportedCameraId;
+  private Size reportedPreviewSize;
   private final Map<String, CameraCharacteristics> capabilities =
       new java.util.concurrent.ConcurrentHashMap<>();
   private Class<?> settingsKey;
@@ -34,6 +39,7 @@ final class CameraHooks17 {
   private int samples;
   private long zoomUntil, zoomLastTimestamp, zoomIntervals, zoomTotalNanos, zoomSlowIntervals;
   private Range<Integer> zoomRequest;
+  private boolean zoomMetadataLogged;
 
   CameraHooks17(HostRuntime runtime) {
     rt = runtime;
@@ -100,15 +106,16 @@ final class CameraHooks17 {
     Class<?> callback =
         Class.forName("com.samsung.android.camera.core2.maker.PhotoMakerBase$6", false, l);
     Class<?> cap = Class.forName("com.samsung.android.camera.core2.CamCapability", false, l);
-    ModernHook.findAndHookMethod(
-        callback,
-        "onPreviewCaptureResult",
-        TotalCaptureResult.class,
-        cap,
-        new ModernHook.Callback() {
-          protected void afterHookedMethod(ModernHook.Param p) {
-            if (!p.hasThrowable() && rt.guard.allowed()) measure((TotalCaptureResult) p.args[0]);
+    ModernHook.aroundMethod(
+        Reflect.method(callback, "onPreviewCaptureResult", TotalCaptureResult.class, cap),
+        chain -> {
+          Object value = chain.proceed();
+          if (rt.guard.allowed()) {
+            TotalCaptureResult result = (TotalCaptureResult) chain.getArgs().get(0);
+            measure(result);
+            if (focusSamples != null) focusSamples.accept(chain.getThisObject(), result);
           }
+          return value;
         });
     new PhotoZoomTiming17(rt, this).install();
     new VideoModes17(rt, this).install();
@@ -116,6 +123,10 @@ final class CameraHooks17 {
     new FlashFocus17(rt, this).install();
     new CameraPanelLight17(rt).install();
     rt.ready();
+  }
+
+  void onPreviewResult(java.util.function.BiConsumer<Object, TotalCaptureResult> listener) {
+    focusSamples = listener;
   }
 
   int mode() {
@@ -208,8 +219,12 @@ final class CameraHooks17 {
         sizes.put(size, supported);
       }
       if (!supported) return;
-      List<CaptureRequest.Key<?>> physicalKeys =
-          characteristics.getAvailablePhysicalCameraRequestKeys();
+      Boolean physicalFps = physicalFpsSupport.get(id);
+      if (physicalFps == null) {
+        List<CaptureRequest.Key<?>> keys = characteristics.getAvailablePhysicalCameraRequestKeys();
+        physicalFps = keys != null && keys.contains(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE);
+        physicalFpsSupport.put(id, physicalFps);
+      }
       Map<?, ?> builders = (Map<?, ?>) Reflect.get(maker, "mPreviewRequestBuilderMap");
       rt.guard.arm();
       for (Map.Entry<?, ?> item : builders.entrySet()) {
@@ -218,8 +233,7 @@ final class CameraHooks17 {
         if (jumpTarget != null && jumpTarget > 0f) builder.set(ZOOM_JUMP_TARGET, 0f);
         if (!PREVIEW_60.equals(builder.get(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE)))
           builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, PREVIEW_60);
-        if (physicalKeys != null
-            && physicalKeys.contains(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE)
+        if (physicalFps
             && item.getKey() instanceof Pair<?, ?> pair
             && pair.second instanceof Set<?> physicalIds) {
           for (Object physicalId : physicalIds)
@@ -227,8 +241,12 @@ final class CameraHooks17 {
                 CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, PREVIEW_60, (String) physicalId);
         }
       }
-      stream = "id=" + id + "; preview=" + size;
-      rt.report("PHOTO: requested 60 fps; " + stream);
+      if (!id.equals(reportedCameraId) || !size.equals(reportedPreviewSize)) {
+        reportedCameraId = id;
+        reportedPreviewSize = size;
+        stream = "id=" + id + "; preview=" + size;
+        rt.report("PHOTO: requested 60 fps; " + stream);
+      }
     } catch (IllegalArgumentException unsupported) {
       // A stale or unsupported stream keeps the native setup, without poisoning the host.
       ModernHook.log(
@@ -244,11 +262,36 @@ final class CameraHooks17 {
     zoomRequest = null;
     zoomResultRange = null;
     zoomExposure = null;
+    zoomMetadataLogged = false;
   }
 
   private synchronized void measureZoom(TotalCaptureResult result, long timestamp) {
     if (zoomUntil == 0) return;
     if (SystemClock.uptimeMillis() >= zoomUntil) {
+      if (!zoomMetadataLogged) {
+        zoomMetadataLogged = true;
+        StringBuilder detail = new StringBuilder("Preview route:");
+        for (CaptureRequest.Key<?> key : result.getRequest().getKeys()) {
+          String name = key.getName();
+          String lower = name.toLowerCase(Locale.ROOT);
+          if (lower.contains("fps")
+              || lower.contains("duration")
+              || lower.contains("transient")
+              || lower.contains("shootingmode")
+              || lower.contains("zoomjump")
+              || lower.contains("livehdr")
+              || lower.contains("hint")
+              || lower.contains("captureintent")) {
+            Object value = result.getRequest().get(key);
+            detail
+                .append(" ")
+                .append(name)
+                .append("=")
+                .append(Arrays.deepToString(new Object[] {value}));
+          }
+        }
+        ModernHook.log(detail.toString());
+      }
       if (zoomIntervals > 0)
         ModernHook.log(
             String.format(

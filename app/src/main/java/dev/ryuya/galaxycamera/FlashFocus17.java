@@ -81,51 +81,7 @@ final class FlashFocus17 {
     callbackMaker = Reflect.field(previewCallbackClass, "this$0");
     // Ten metadata samples per second keep the sample fresher than the 350 ms flash limit.
     // No images or camera content leave this process.
-    ModernHook.findAndHookMethod(
-        previewCallbackClass,
-        "onPreviewCaptureResult",
-        TotalCaptureResult.class,
-        Class.forName("com.samsung.android.camera.core2.CamCapability", false, loader),
-        new ModernHook.Callback() {
-          protected void afterHookedMethod(ModernHook.Param call) {
-            if (call.hasThrowable() || !runtime.enabled(ConfigProvider.FOCUS)) return;
-            long now = SystemClock.elapsedRealtime();
-            if (now < nextFocusSample) return;
-            nextFocusSample = now + 100;
-            if (hold != null) {
-              Integer mode = ((TotalCaptureResult) call.args[0]).get(CaptureResult.CONTROL_AF_MODE);
-              if (mode == null || mode != CaptureResult.CONTROL_AF_MODE_OFF) return;
-              Integer position = measuredLensPosition((TotalCaptureResult) call.args[0]);
-              if (position != null) {
-                minimumHeldPosition = Math.min(minimumHeldPosition, position);
-                maximumHeldPosition = Math.max(maximumHeldPosition, position);
-              }
-              Float measuredDistance =
-                  ((TotalCaptureResult) call.args[0]).get(CaptureResult.LENS_FOCUS_DISTANCE);
-              if (measuredDistance != null) {
-                minimumHeldDistance = Math.min(minimumHeldDistance, measuredDistance);
-                maximumHeldDistance = Math.max(maximumHeldDistance, measuredDistance);
-                heldResultCount++;
-              }
-              return;
-            }
-            try {
-              Float distance =
-                  ((TotalCaptureResult) call.args[0]).get(CaptureResult.LENS_FOCUS_DISTANCE);
-              Integer position = measuredLensPosition((TotalCaptureResult) call.args[0]);
-              if (distance != null
-                  && position != null
-                  && Float.isFinite(distance)
-                  && distance >= 0) {
-                Object maker = callbackMaker.get(call.thisObject);
-                if (sampledMaker.get() != maker) sampledMaker = new WeakReference<>(maker);
-                sample = new FocusSample(sampledMaker, distance, position, now);
-              }
-            } catch (Throwable error) {
-              runtime.fail(error);
-            }
-          }
-        });
+    camera.onPreviewResult(this::sampleFocus);
     ModernHook.findAndHookMethod(
         Class.forName("p8.p", false, loader),
         "J",
@@ -236,6 +192,40 @@ final class FlashFocus17 {
         () -> {
           if (!runtime.enabled(ConfigProvider.FOCUS)) release("disabled");
         });
+  }
+
+  private void sampleFocus(Object callback, TotalCaptureResult result) {
+    if (!runtime.enabled(ConfigProvider.FOCUS)) return;
+    long now = SystemClock.elapsedRealtime();
+    if (now < nextFocusSample) return;
+    nextFocusSample = now + 100;
+    if (hold != null) {
+      Integer mode = result.get(CaptureResult.CONTROL_AF_MODE);
+      if (mode == null || mode != CaptureResult.CONTROL_AF_MODE_OFF) return;
+      Integer position = measuredLensPosition(result);
+      if (position != null) {
+        minimumHeldPosition = Math.min(minimumHeldPosition, position);
+        maximumHeldPosition = Math.max(maximumHeldPosition, position);
+      }
+      Float measuredDistance = result.get(CaptureResult.LENS_FOCUS_DISTANCE);
+      if (measuredDistance != null) {
+        minimumHeldDistance = Math.min(minimumHeldDistance, measuredDistance);
+        maximumHeldDistance = Math.max(maximumHeldDistance, measuredDistance);
+        heldResultCount++;
+      }
+      return;
+    }
+    try {
+      Float distance = result.get(CaptureResult.LENS_FOCUS_DISTANCE);
+      Integer position = measuredLensPosition(result);
+      if (distance != null && position != null && Float.isFinite(distance) && distance >= 0) {
+        Object maker = callbackMaker.get(callback);
+        if (sampledMaker.get() != maker) sampledMaker = new WeakReference<>(maker);
+        sample = new FocusSample(sampledMaker, distance, position, now);
+      }
+    } catch (Throwable error) {
+      runtime.fail(error);
+    }
   }
 
   private Integer measuredLensPosition(TotalCaptureResult result) {
