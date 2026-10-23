@@ -25,20 +25,29 @@ final class VideoModes17 {
     uhd = Reflect.value(resolution, "RESOLUTION_3840X2160_120FPS");
     uhdCommand = Reflect.value(commands, "BACK_PRO_CAMCORDER_RESOLUTION_UHD_120");
     backSetting = Reflect.value(setting, "BACK_CAMCORDER_RESOLUTION");
-    // The HAL accepts this sensor/encoder combination through Samsung's Pro
-    // recording pipeline. Keep the normal-video UI and automatic controls, but
-    // identify only its added 120 fps session using that existing pipeline.
+    Class<?> videoMaker =
+        Class.forName("com.samsung.android.camera.core2.maker.VideoMaker", false, l);
+    Class<?> proMaker =
+        Class.forName("com.samsung.android.camera.core2.maker.ProVideoMaker", false, l);
     ModernHook.findAndHookMethod(
-        Class.forName("com.samsung.android.camera.core2.maker.VideoMaker", false, l),
-        "getMakerShootingMode",
+        Class.forName("com.samsung.android.camera.core2.maker.MakerFactory", false, l),
+        "create",
+        Class.class,
+        Class.forName(
+            "com.samsung.android.camera.core2.maker.MakerFactory$Configuration", false, l),
         new ModernHook.Callback() {
-          protected void afterHookedMethod(ModernHook.Param p) {
-            if (p.hasThrowable() || !rt.enabled(ConfigProvider.VIDEO) || camera.mode() != 1) return;
+          protected void beforeHookedMethod(ModernHook.Param p) {
+            if (p.args[0] != videoMaker || !rt.enabled(ConfigProvider.VIDEO) || camera.mode() != 1)
+              return;
             try {
               Object selected =
                   Reflect.method(resolution, "j", int.class)
                       .invoke(null, camera.backVideoResolution());
-              if (supported(selected)) p.setResult(35);
+              if (supported(selected)) {
+                rt.guard.arm();
+                p.args[0] = proMaker;
+                rt.report("VIDEO: native high-frame-rate maker selected");
+              }
             } catch (Throwable e) {
               rt.fail(e);
             }

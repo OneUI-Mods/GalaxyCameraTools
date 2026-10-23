@@ -40,6 +40,33 @@ final class ExpertRawHooks17 {
         Reflect.method(
             animation, "requestPreviewAnimation", animationType, callbackType, Rect.class);
     switchCamera = Reflect.method(engine, "switchCamera", int.class);
+    Class<?> presenter =
+        Class.forName(BASE + "shootingmode.abstraction.AbstractShootingModePresenter", false, l);
+    ModernHook.findAndHookMethod(
+        presenter,
+        "switchCamera",
+        int.class,
+        new ModernHook.Callback() {
+          protected void beforeHookedMethod(ModernHook.Param p) {
+            if (!rt.enabled(ConfigProvider.ANIMATION)
+                || Looper.myLooper() != Looper.getMainLooper()) return;
+            try {
+              Object source = Reflect.get(p.thisObject, "mEngine");
+              if (prepare(source, (int) p.args[0])) {
+                Reflect.call(Reflect.call(source, "getAeAfManager"), "resetAeAfAwb");
+                p.setResult(null);
+              }
+            } catch (Throwable e) {
+              rt.fail(e);
+            }
+          }
+        });
+    ModernHook.deoptimize(
+        Reflect.method(
+            Class.forName(BASE + "shootingmode.pro.ProPresenter", false, l),
+            "handleLensTypeChanged",
+            int.class,
+            int.class));
     ModernHook.hookMethod(
         switchCamera,
         new ModernHook.Callback() {
