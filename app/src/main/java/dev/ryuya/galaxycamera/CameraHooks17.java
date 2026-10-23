@@ -15,8 +15,6 @@ final class CameraHooks17 {
   private final HostRuntime rt;
   private volatile WeakReference<Activity> activity = new WeakReference<>(null);
   private final ThreadLocal<Object> owner = new ThreadLocal<>();
-  private volatile WeakReference<Object> previewMaker = new WeakReference<>(null);
-  private final Map<CaptureRequest.Builder, Integer> zoomCaptureIntents = new IdentityHashMap<>();
   private final Map<String, CameraCharacteristics> capabilities =
       new java.util.concurrent.ConcurrentHashMap<>();
   private Class<?> settingsKey;
@@ -84,9 +82,6 @@ final class CameraHooks17 {
             try {
               if (CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE.equals(p.args[2])) {
                 previewRequest(p, owner.get());
-              } else if (p.args[2] instanceof CaptureRequest.Key<?> key
-                  && key.getName().equals("samsung.android.control.transientAction")) {
-                previewZoomAction(p, owner.get());
               }
             } catch (Throwable error) {
               rt.fail(error);
@@ -230,21 +225,6 @@ final class CameraHooks17 {
     }
   }
 
-  private void previewZoomAction(ModernHook.Param p, Object maker) throws Exception {
-    if (mode() != 0
-        || (int) Reflect.call(maker, "getMakerType") != 1
-        || p.args[0] != Reflect.get(maker, "mPreviewRequestBuilderMap")
-        || !(p.args[3] instanceof Integer action)
-        || (action & 1) == 0) return;
-    String id = (String) p.args[1];
-    Size size = (Size) Reflect.get(maker, "mMainPreviewSurfaceSize");
-    if (!supportsPreview60(id, size)) return;
-    // Only the preview's transient-zoom bit is changed. Still capture and other action bits
-    // keep Samsung's original values, as do unsupported streams and thermal protection.
-    rt.guard.arm();
-    p.args[3] = action & ~1;
-  }
-
   private void previewRequest(ModernHook.Param p, Object maker) throws Exception {
     if (p.args[0] != Reflect.get(maker, "mPreviewRequestBuilderMap")) return;
     int type = (int) Reflect.call(maker, "getMakerType");
@@ -282,40 +262,11 @@ final class CameraHooks17 {
               + thermal);
       return;
     }
-    previewMaker = new WeakReference<>(maker);
     eligiblePreviewSizes.put(id, size);
     rt.guard.arm();
     p.args[3] = new Range<>(60, 60);
     stream = "id=" + id + "; preview=" + size;
     rt.report("PHOTO: requested 60 fps; " + stream);
-  }
-
-  void beginPreviewZoom() {
-    endPreviewZoom();
-    Object maker = previewMaker.get();
-    if (maker == null || !rt.enabled(ConfigProvider.FPS) || mode() != 0) return;
-    try {
-      Map<?, ?> builders = (Map<?, ?>) Reflect.get(maker, "mPreviewRequestBuilderMap");
-      for (Object value : builders.values()) {
-        if (value instanceof CaptureRequest.Builder builder) {
-          zoomCaptureIntents.put(builder, builder.get(CaptureRequest.CONTROL_CAPTURE_INTENT));
-          builder.set(
-              CaptureRequest.CONTROL_CAPTURE_INTENT,
-              CaptureRequest.CONTROL_CAPTURE_INTENT_VIDEO_RECORD);
-        }
-      }
-      ModernHook.log("Photo zoom: preview intent enabled; builders=" + zoomCaptureIntents.size());
-    } catch (ReflectiveOperationException | IllegalArgumentException error) {
-      endPreviewZoom();
-      rt.fail(error);
-    }
-  }
-
-  void endPreviewZoom() {
-    for (Map.Entry<CaptureRequest.Builder, Integer> item : zoomCaptureIntents.entrySet()) {
-      item.getKey().set(CaptureRequest.CONTROL_CAPTURE_INTENT, item.getValue());
-    }
-    zoomCaptureIntents.clear();
   }
 
   synchronized void beginZoomMeasurement() {

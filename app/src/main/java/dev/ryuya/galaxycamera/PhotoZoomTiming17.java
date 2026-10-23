@@ -155,7 +155,6 @@ final class PhotoZoomTiming17 {
 
     void start() {
       started = System.nanoTime();
-      camera.beginPreviewZoom();
       selection.view.setRequestedFrameRate(60f);
       Choreographer.getInstance().postFrameCallback(this);
       ModernHook.log("Photo zoom: eased native curve, display synchronized; duration=" + duration);
@@ -218,7 +217,6 @@ final class PhotoZoomTiming17 {
 
     void stop() {
       stopped = true;
-      camera.endPreviewZoom();
       Choreographer.getInstance().removeFrameCallback(this);
       selection.view.setRequestedFrameRate(previousFrameRate);
       if (motion == this) motion = null;
