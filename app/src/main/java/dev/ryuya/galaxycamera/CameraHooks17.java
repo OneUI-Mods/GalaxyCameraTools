@@ -15,6 +15,8 @@ final class CameraHooks17 {
   private final HostRuntime rt;
   private volatile WeakReference<Activity> activity = new WeakReference<>(null);
   private static final Range<Integer> PREVIEW_60 = new Range<>(60, 60);
+  private static final CaptureRequest.Key<Integer> PREVIEW_HDR =
+      new CaptureRequest.Key<>("samsung.android.control.liveHdrMode", Integer.class);
   private static final CaptureRequest.Key<Integer> CAMERA_HEAT =
       new CaptureRequest.Key<>("samsung.android.control.overHeatHint", Integer.class);
 
@@ -108,6 +110,19 @@ final class CameraHooks17 {
         new ModernHook.Callback() {
           protected void beforeHookedMethod(ModernHook.Param call) {
             applyPreviewFps(call.thisObject);
+          }
+        });
+    ModernHook.findAndHookMethod(
+        photoMaker,
+        "startPreviewRepeating",
+        new ModernHook.Callback() {
+          protected void afterHookedMethod(ModernHook.Param call) {
+            if (call.hasThrowable() || !rt.enabled(ConfigProvider.FPS) || mode() != 0) return;
+            try {
+              Object device = Reflect.get(call.thisObject, "mCamDevice");
+              ModernHook.log("Preview targets: " + Reflect.get(device, "i0"));
+            } catch (ReflectiveOperationException ignored) {
+            }
           }
         });
     Class<?> callback =
@@ -256,6 +271,7 @@ final class CameraHooks17 {
           continue;
         }
         highRate = true;
+        builder.set(PREVIEW_HDR, 0);
         if (!armed) {
           rt.guard.arm();
           armed = true;
