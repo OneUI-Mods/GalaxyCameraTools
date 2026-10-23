@@ -53,6 +53,34 @@ final class VideoModes17 {
             }
           }
         });
+    ModernHook.findAndHookMethod(
+        Class.forName("com.samsung.android.camera.core2.maker.VideoMakerBase", false, l),
+        "startRecordRepeating",
+        new ModernHook.Callback() {
+          protected void beforeHookedMethod(ModernHook.Param p) {
+            try {
+              Object raw = Reflect.get(p.thisObject, "mRecordRequestBuilderMap");
+              if (!(raw instanceof Map<?, ?> map)) return;
+              StringBuilder details = new StringBuilder(p.thisObject.getClass().getSimpleName());
+              for (Object builder : map.values()) {
+                android.hardware.camera2.CaptureRequest request =
+                    ((android.hardware.camera2.CaptureRequest.Builder) builder).build();
+                for (android.hardware.camera2.CaptureRequest.Key<?> key : request.getKeys()) {
+                  String name = key.getName();
+                  if (name.contains("aeTarget")
+                      || name.contains("recording")
+                      || name.contains("captureIntent")
+                      || name.contains("shootingMode")
+                      || name.equals("android.control.mode"))
+                    details.append("; ").append(name).append('=').append(request.get(key));
+                }
+              }
+              ModernHook.log("RECORD CONFIG: " + details);
+            } catch (Throwable e) {
+              ModernHook.log("Record diagnostic unavailable: " + e);
+            }
+          }
+        });
     // The normal-video presenter unconditionally adds a JPEG snapshot stream.
     // Clear only that stream after its native preparation at 120 fps; returning
     // null from the size utility would break the presenter's own calculations.
