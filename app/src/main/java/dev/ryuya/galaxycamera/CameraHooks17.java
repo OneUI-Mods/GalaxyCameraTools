@@ -20,8 +20,6 @@ final class CameraHooks17 {
   private Class<?> settingsKey;
   private Object modeKey;
   private String stream = "";
-  private final Map<String, Size> eligiblePreviewSizes =
-      new java.util.concurrent.ConcurrentHashMap<>();
   private Range<Integer> zoomResultRange;
   private Long zoomExposure;
   private long firstTimestamp, lastTimestamp, firstFrame;
@@ -101,47 +99,6 @@ final class CameraHooks17 {
             if (!p.hasThrowable() && rt.guard.allowed()) measure((TotalCaptureResult) p.args[0]);
           }
         });
-    Class<?> sessionConfig =
-        Class.forName("com.samsung.android.camera.core2.container.SessionConfig", false, l);
-    Class<?> sessionMode =
-        Class.forName("com.samsung.android.camera.core2.CamDevice$SessionMode", false, l);
-    Class<?> device =
-        Class.forName("com.samsung.android.camera.core2.device.CamDeviceImpl", false, l);
-    ModernHook.findAndHookMethod(
-        device,
-        "X",
-        sessionConfig,
-        sessionMode,
-        new ModernHook.Callback() {
-          protected void beforeHookedMethod(ModernHook.Param p) {
-            if (!rt.enabled(ConfigProvider.FPS) || mode() != 0) return;
-            try {
-              String id = (String) Reflect.get(p.thisObject, "e");
-              if (!eligiblePreviewSizes.containsKey(id)) {
-                Object surfaces = Reflect.get(p.args[0], "a");
-                Object preview = Reflect.get(surfaces, "a");
-                if (preview == null) return;
-                Size size = (Size) Reflect.get(preview, "c");
-                if (!supportsPreview60(id, size)) return;
-                eligiblePreviewSizes.put(id, size);
-              }
-              Object config = Reflect.get(p.args[0], "k");
-              Map<?, ?> previewBuilders = (Map<?, ?>) Reflect.get(config, "a");
-              for (Object value : previewBuilders.values()) {
-                if (value instanceof CaptureRequest.Builder builder) {
-                  Range<Integer> previous = builder.get(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE);
-                  builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(60, 60));
-                  ModernHook.log(
-                      "Photo session: id=" + id + "; initial FPS=" + previous + " -> [60, 60]");
-                }
-              }
-            } catch (ReflectiveOperationException
-                | CameraAccessException
-                | IllegalArgumentException error) {
-              rt.fail(error);
-            }
-          }
-        });
     new PhotoZoomTiming17(rt, this).install();
     new VideoModes17(rt, this).install();
     new UltraWideLight17(rt).install();
@@ -202,29 +159,6 @@ final class CameraHooks17 {
     rt.report("VIDEO: disabled; restored native 30 fps selection");
   }
 
-  private boolean supportsPreview60(String id, Size size) throws CameraAccessException {
-    if (size == null) return false;
-    CameraCharacteristics characteristics =
-        rt.context.getSystemService(CameraManager.class).getCameraCharacteristics(id);
-    Range<Integer>[] ranges =
-        characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
-    StreamConfigurationMap map =
-        characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-    if (ranges == null || map == null || !Arrays.asList(ranges).contains(new Range<>(60, 60)))
-      return false;
-    try {
-      return PreviewPolicy.eligible(
-          true,
-          mode(),
-          1,
-          true,
-          map.getOutputMinFrameDuration(SurfaceTexture.class, size),
-          rt.context.getSystemService(PowerManager.class).getCurrentThermalStatus());
-    } catch (IllegalArgumentException unsupported) {
-      return false;
-    }
-  }
-
   private void previewRequest(ModernHook.Param p, Object maker) throws Exception {
     if (p.args[0] != Reflect.get(maker, "mPreviewRequestBuilderMap")) return;
     int type = (int) Reflect.call(maker, "getMakerType");
@@ -262,7 +196,6 @@ final class CameraHooks17 {
               + thermal);
       return;
     }
-    eligiblePreviewSizes.put(id, size);
     rt.guard.arm();
     p.args[3] = new Range<>(60, 60);
     stream = "id=" + id + "; preview=" + size;
