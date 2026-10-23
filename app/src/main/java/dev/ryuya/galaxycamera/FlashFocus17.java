@@ -22,6 +22,9 @@ final class FlashFocus17 {
   private volatile int minimumHeldPosition, maximumHeldPosition;
   private volatile float minimumHeldDistance, maximumHeldDistance;
   private volatile int heldResultCount;
+  private long nextFocusSample;
+  private java.lang.reflect.Field callbackMaker;
+  private WeakReference<Object> sampledMaker = new WeakReference<>(null);
   private final Runnable timeout = () -> release("timeout");
 
   private record FocusSample(
@@ -75,7 +78,9 @@ final class FlashFocus17 {
         });
     Class<?> previewCallbackClass =
         Class.forName("com.samsung.android.camera.core2.maker.PhotoMakerBase$6", false, loader);
-    // Only metadata is retained; no images or camera content leave this process.
+    callbackMaker = Reflect.field(previewCallbackClass, "this$0");
+    // Ten metadata samples per second keep the sample fresher than the 350 ms flash limit.
+    // No images or camera content leave this process.
     ModernHook.findAndHookMethod(
         previewCallbackClass,
         "onPreviewCaptureResult",
@@ -84,6 +89,9 @@ final class FlashFocus17 {
         new ModernHook.Callback() {
           protected void afterHookedMethod(ModernHook.Param call) {
             if (call.hasThrowable() || !runtime.enabled(ConfigProvider.FOCUS)) return;
+            long now = SystemClock.elapsedRealtime();
+            if (now < nextFocusSample) return;
+            nextFocusSample = now + 100;
             if (hold != null) {
               Integer mode = ((TotalCaptureResult) call.args[0]).get(CaptureResult.CONTROL_AF_MODE);
               if (mode == null || mode != CaptureResult.CONTROL_AF_MODE_OFF) return;
@@ -105,13 +113,14 @@ final class FlashFocus17 {
               Float distance =
                   ((TotalCaptureResult) call.args[0]).get(CaptureResult.LENS_FOCUS_DISTANCE);
               Integer position = measuredLensPosition((TotalCaptureResult) call.args[0]);
-              if (distance != null && position != null && Float.isFinite(distance) && distance >= 0)
-                sample =
-                    new FocusSample(
-                        new WeakReference<>(Reflect.get(call.thisObject, "this$0")),
-                        distance,
-                        position,
-                        SystemClock.elapsedRealtime());
+              if (distance != null
+                  && position != null
+                  && Float.isFinite(distance)
+                  && distance >= 0) {
+                Object maker = callbackMaker.get(call.thisObject);
+                if (sampledMaker.get() != maker) sampledMaker = new WeakReference<>(maker);
+                sample = new FocusSample(sampledMaker, distance, position, now);
+              }
             } catch (Throwable error) {
               runtime.fail(error);
             }

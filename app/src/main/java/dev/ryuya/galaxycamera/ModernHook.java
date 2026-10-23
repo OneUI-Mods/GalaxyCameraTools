@@ -125,7 +125,7 @@ final class ModernHook {
     private Object result;
     private Throwable throwable;
     private boolean returnEarly;
-    private final java.util.Map<String, Object> extras = new java.util.HashMap<>();
+    private java.util.Map<String, Object> extras;
 
     Param(XposedInterface.Chain chain) {
       thisObject = chain.getThisObject();
@@ -147,11 +147,12 @@ final class ModernHook {
     }
 
     void setObjectExtra(String key, Object value) {
+      if (extras == null) extras = new java.util.HashMap<>();
       extras.put(key, value);
     }
 
     Object getObjectExtra(String key) {
-      return extras.get(key);
+      return extras == null ? null : extras.get(key);
     }
   }
 

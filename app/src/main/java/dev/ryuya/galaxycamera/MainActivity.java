@@ -3,7 +3,6 @@ package dev.ryuya.galaxycamera;
 import android.content.*;
 import android.database.ContentObserver;
 import android.os.*;
-import android.view.View;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.*;
@@ -50,6 +49,11 @@ public final class MainActivity extends AppCompatActivity {
     LinearLayout camera = tabs.page(R.string.tab_camera);
     section(camera, R.string.photo_section);
     toggle(camera, ConfigProvider.FPS, R.string.photo_title, R.string.photo_summary);
+    toggle(
+        camera,
+        ConfigProvider.LENS_MOTION,
+        R.string.lens_motion_title,
+        R.string.lens_motion_summary);
     section(camera, R.string.video_section);
     toggle(camera, ConfigProvider.VIDEO, R.string.video_title, R.string.video_summary);
     text(

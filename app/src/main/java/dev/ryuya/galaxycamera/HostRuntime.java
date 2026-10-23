@@ -1,9 +1,9 @@
 package dev.ryuya.galaxycamera;
 
+import android.app.BroadcastOptions;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ComponentName;
-import android.app.BroadcastOptions;
 import android.database.ContentObserver;
 import android.os.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -19,6 +19,8 @@ final class HostRuntime {
   private volatile boolean failed;
   private final CopyOnWriteArrayList<Runnable> changed = new CopyOnWriteArrayList<>();
   private String lastStatus = "";
+  private final java.util.concurrent.atomic.AtomicReference<String> submittedStatus =
+      new java.util.concurrent.atomic.AtomicReference<>("");
   private volatile boolean available;
   private boolean observing;
   private int attempts;
@@ -93,6 +95,7 @@ final class HostRuntime {
   }
 
   void report(String status) {
+    if (status.equals(submittedStatus.getAndSet(status))) return;
     worker.post(
         () -> {
           if (status.equals(lastStatus)) return;

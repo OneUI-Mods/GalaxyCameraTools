@@ -18,7 +18,7 @@
   <string name="video_section">일반 동영상</string>
   <string name="raw_section">렌즈 전환</string>
   <string name="photo_title">사진 미리보기 60fps</string>
-  <string name="photo_summary">지원되는 일반 사진 미리보기에 60fps를 요청하고 화면 프레임에 맞춰 렌즈 줌을 부드럽게 연결합니다. 저장 사진의 촬영 설정은 유지합니다. 과열 및 미지원 스트림은 기본 설정을 사용합니다.</string>
+  <string name="photo_summary">지원되는 일반 사진 미리보기에 60fps를 요청합니다. 저장 사진 설정과 고온 및 지원되지 않는 스트림의 기본 제한을 유지합니다.</string>
   <string name="video_title">일반 동영상에 120fps 추가</string>
   <string name="video_summary">Samsung이 지원하는 120fps 녹화 옵션을 일반 동영상 모드에 추가합니다. 프로 동영상 설정은 유지합니다.</string>
   <string name="video_limits">120fps는 카메라가 지원하는 해상도와 렌즈에서만 사용할 수 있습니다. 이 버전은 후면 FHD와 UHD를 대상으로 합니다. 8K, HD, 전면 및 특수 화면 비율은 지원하는 녹화 경로를 확인하기 전까지 추가하지 않습니다.</string>
@@ -44,4 +44,6 @@
   <string name="tab_camera2">Camera2</string>
   <string name="camera2_title">Camera2 추가 렌즈 표시</string>
   <string name="camera2_summary">Vector에서 선택한 일반 카메라 앱에 지원되는 추가 후면 카메라 ID를 표시합니다. 앱을 모듈 범위에 추가한 뒤 다시 시작하세요. 카메라 권한은 여전히 필요합니다. 지원되지 않는 해상도나 프레임 속도는 추가하지 않습니다. 앱에 렌즈 선택 기능이 없을 수도 있습니다.</string>
+    <string name="lens_motion_title">렌즈 전환을 부드럽게</string>
+    <string name="lens_motion_summary">사진과 동영상의 렌즈 전환에 가감속을 적용합니다. 슈퍼 스테디와 수평 잠금을 지원하며 전환 시간을 조금 늘립니다.</string>
 </resources>

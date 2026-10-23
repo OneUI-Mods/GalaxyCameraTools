@@ -19,12 +19,19 @@ public final class ConfigProvider extends ContentProvider {
       LIGHT = "ultra_wide_light",
       FOCUS = "flash_focus_hold",
       PANEL_LIGHT = "camera_quick_panel_light",
-      CAMERA2 = "camera2_extra_lenses";
+      CAMERA2 = "camera2_extra_lenses",
+      LENS_MOTION = "camera_lens_animation";
   static final Set<String> HOSTS = Set.of(CAMERA, ASSISTANT, EXPERT, SYSTEM_UI);
-  static final String[] KEYS = {FPS, VIDEO, ANIMATION, LIGHT, FOCUS, PANEL_LIGHT, CAMERA2};
+  static final String[] KEYS = {
+    FPS, VIDEO, ANIMATION, LIGHT, FOCUS, PANEL_LIGHT, CAMERA2, LENS_MOTION
+  };
   static final Uri URI = Uri.parse("content://dev.ryuya.galaxycamera.config");
 
   public boolean onCreate() {
+    // One-time migration keeps the old photo easing choice, then both switches are independent.
+    var prefs = getContext().getSharedPreferences("settings", 0);
+    if (!prefs.contains(LENS_MOTION))
+      prefs.edit().putBoolean(LENS_MOTION, prefs.getBoolean(FPS, false)).apply();
     return true;
   }
 

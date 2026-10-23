@@ -18,7 +18,7 @@
   <string name="video_section">Normal video</string>
   <string name="raw_section">Lens switching</string>
   <string name="photo_title">60 fps photo preview</string>
-  <string name="photo_summary">Requests 60 fps for supported normal Photo streams and eases lens zoom in sync with display frames. Saved photos retain their capture settings. Heat and unsupported streams keep camera defaults.</string>
+  <string name="photo_summary">Requests 60fps for supported standard photo previews. Saved photo settings are preserved; native limits apply to unsupported streams and high temperatures.</string>
   <string name="video_title">120 fps in normal Video mode</string>
   <string name="video_summary">Adds Samsung-supported 120 fps recording choices to normal Video mode. Pro Video remains unchanged.</string>
   <string name="video_limits">120 fps is limited to resolutions and lenses supported by the camera pipeline. This build targets rear FHD and UHD. 8K, HD, front cameras and special aspect ratios are not added without a supported recording path.</string>
@@ -44,4 +44,6 @@
   <string name="tab_camera2">Camera2</string>
   <string name="camera2_title">Expose additional Camera2 lenses</string>
   <string name="camera2_summary">Makes supported additional rear camera IDs visible in ordinary camera apps selected in Vector. Enable the module for each camera app, then restart that app. Camera permission is still required. This does not add unsupported resolutions or frame rates, and apps may not offer a lens selector.</string>
+    <string name="lens_motion_title">Smooth lens switching</string>
+    <string name="lens_motion_summary">Eases photo and video lens changes, including Super Steady and horizontal lock. Slightly longer transitions make acceleration and deceleration easier to see.</string>
 </resources>

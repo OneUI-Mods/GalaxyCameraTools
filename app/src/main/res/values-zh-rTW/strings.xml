@@ -18,7 +18,7 @@
   <string name="video_section">一般錄影</string>
   <string name="raw_section">切換鏡頭</string>
   <string name="photo_title">照片預覽使用60fps</string>
-  <string name="photo_summary">為支援的一般照片預覽要求60fps，並按螢幕影格同步鏡頭縮放緩動。保留照片拍攝設定；過熱或不支援的預覽使用相機預設設定。</string>
+  <string name="photo_summary">為支援的一般照片預覽要求60fps。保留照片拍攝設定，並遵守高溫和不支援的畫面尺寸限制。</string>
   <string name="video_title">為一般錄影加入120fps</string>
   <string name="video_summary">將Samsung支援的120fps錄影選項加入一般錄影模式，保留專業錄影的設定。</string>
   <string name="video_limits">120fps僅限相機支援的解析度與鏡頭。此版本以後置FHD及UHD為對象。在確認支援的錄影流程前，不加入8K、HD、前置及特殊畫面比例。</string>
@@ -44,4 +44,6 @@
   <string name="tab_camera2">Camera2</string>
   <string name="camera2_title">顯示Camera2附加鏡頭</string>
   <string name="camera2_summary">向Vector中選定的一般相機應用顯示支援的附加後置相機ID。將相機應用加入模組範圍後重新啟動。仍需相機權限。不會增加不支援的解析度或影格率。應用程式本身可能不提供鏡頭選擇。</string>
+    <string name="lens_motion_title">平滑切換鏡頭</string>
+    <string name="lens_motion_summary">為照片和影片的鏡頭切換加入緩動，包括超級防手震和水平鎖定。稍微延長切換時間，讓加減速更明顯。</string>
 </resources>

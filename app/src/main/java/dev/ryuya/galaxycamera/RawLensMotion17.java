@@ -9,8 +9,6 @@ import android.hardware.camera2.CameraManager;
 import android.util.SizeF;
 import android.view.SurfaceView;
 import android.view.View;
-import android.view.animation.LinearInterpolator;
-import android.view.animation.PathInterpolator;
 import java.util.List;
 
 /** Visual lens handoff; never changes RAW capture requests, crop regions or saved settings. */
@@ -22,6 +20,7 @@ final class RawLensMotion17 {
   private final Runnable completed;
   private final float ratio;
   private final List<ZoomCurve.Point> stockCurve;
+  private final int curveDuration;
   private final float previewScaleX, previewScaleY, previewPivotX, previewPivotY;
   private final float previewFrameRate, snapshotFrameRate;
   private final Rect previewClip;
@@ -29,6 +28,7 @@ final class RawLensMotion17 {
   private ValueAnimator zoom, fade;
   private boolean previewReady, travelFinished, fadeFinished, finished;
   private float progress;
+  private final Rect animatedClip = new Rect();
 
   RawLensMotion17(
       HostRuntime runtime, Object context, Object layer, int from, int to, Runnable completed)
@@ -37,6 +37,7 @@ final class RawLensMotion17 {
     this.layer = layer;
     this.completed = completed;
     stockCurve = StockZoomCurves.read(runtime, from, to);
+    curveDuration = stockCurve == null ? 0 : ZoomCurve.duration(stockCurve);
     Object binding = Reflect.get(layer, "mViewBinding");
     snapshot = (View) Reflect.get(binding, "h");
     blur = (View) Reflect.get(binding, "g");
@@ -107,12 +108,12 @@ final class RawLensMotion17 {
   private void startTravel() {
     zoom = ValueAnimator.ofFloat(0f, 1f);
     // Prefer the exact numeric curve read from the installed stock Camera at runtime.
-    zoom.setInterpolator(
-        stockCurve == null ? new PathInterpolator(0.22f, 0.25f, 0f, 1f) : new LinearInterpolator());
+    zoom.setInterpolator(LensMotionTiming::phase);
     zoom.setDuration(
-        stockCurve == null
-            ? (Math.min(ratio, 1f / ratio) < 0.34f ? 800 : 200)
-            : ZoomCurve.duration(stockCurve));
+        LensMotionTiming.duration(
+            stockCurve == null
+                ? (Math.min(ratio, 1f / ratio) < 0.34f ? 800 : 200)
+                : curveDuration));
     zoom.addUpdateListener(
         value -> {
           if (finished) return;
@@ -120,8 +121,7 @@ final class RawLensMotion17 {
           if (stockCurve != null) {
             float first = stockCurve.get(0).zoom();
             float last = stockCurve.get(stockCurve.size() - 1).zoom();
-            float current =
-                ZoomCurve.valueAt(stockCurve, Math.round(progress * zoom.getDuration()));
+            float current = ZoomCurve.valueAt(stockCurve, Math.round(progress * curveDuration));
             progress = Math.max(0f, Math.min(1f, (current - first) / (last - first)));
           }
           if (ratio > 1f) {
@@ -156,9 +156,9 @@ final class RawLensMotion17 {
     preview.setScaleY(previewScaleY * scale);
     int insetX = Math.round(preview.getWidth() * (1f - 1f / scale) / 2f);
     int insetY = Math.round(preview.getHeight() * (1f - 1f / scale) / 2f);
-    Rect clip = new Rect(insetX, insetY, preview.getWidth() - insetX, preview.getHeight() - insetY);
-    if (previewClip != null) clip.intersect(previewClip);
-    preview.setClipBounds(clip);
+    animatedClip.set(insetX, insetY, preview.getWidth() - insetX, preview.getHeight() - insetY);
+    if (previewClip != null) animatedClip.intersect(previewClip);
+    preview.setClipBounds(animatedClip);
   }
 
   private void startFade() {

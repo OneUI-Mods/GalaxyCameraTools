@@ -14,10 +14,16 @@ import java.util.*;
 final class CameraHooks17 {
   private final HostRuntime rt;
   private volatile WeakReference<Activity> activity = new WeakReference<>(null);
-  private final ThreadLocal<Object> owner = new ThreadLocal<>();
+  private static final Range<Integer> PREVIEW_60 = new Range<>(60, 60);
+  private final Map<String, Map<Size, Boolean>> previewSupport =
+      new java.util.concurrent.ConcurrentHashMap<>();
+  private volatile int thermalStatus;
+  private long nextStatisticsRead;
   private final Map<String, CameraCharacteristics> capabilities =
       new java.util.concurrent.ConcurrentHashMap<>();
   private Class<?> settingsKey;
+  private Field cameraSettings;
+  private Method readMode;
   private Object modeKey;
   private String stream = "";
   private Range<Integer> zoomResultRange;
@@ -36,7 +42,8 @@ final class CameraHooks17 {
     Class<?> camera = Class.forName("com.sec.android.app.camera.Camera", false, l);
     settingsKey = Class.forName("l9.f0", false, l);
     modeKey = Reflect.value(settingsKey, "MODE_CUSTOM_SETTING");
-    Reflect.field(camera, "j");
+    cameraSettings = Reflect.field(camera, "j");
+    readMode = Reflect.method(Class.forName("vc.j", false, l), "x", settingsKey);
     ModernHook.findAndHookMethod(
         camera,
         "onCreate",
@@ -47,43 +54,45 @@ final class CameraHooks17 {
           }
         });
     Class<?> maker = Class.forName("com.samsung.android.camera.core2.maker.MakerBase", false, l);
+    PowerManager power = rt.context.getSystemService(PowerManager.class);
+    thermalStatus = power.getCurrentThermalStatus();
+    power.addThermalStatusListener(rt.context.getMainExecutor(), status -> thermalStatus = status);
     for (Method method :
         List.of(
             Reflect.method(maker, "setPublicSetting", CaptureRequest.Key.class, Object.class),
             Reflect.method(maker, "setSessionKeys", Map.class))) {
-      ModernHook.aroundMethod(
+      ModernHook.hookMethod(
           method,
-          chain -> {
-            Object previous = owner.get();
-            owner.set(chain.getThisObject());
-            try {
-              return chain.proceed();
-            } finally {
-              if (previous == null) owner.remove();
-              else owner.set(previous);
+          new ModernHook.Callback() {
+            protected void afterHookedMethod(ModernHook.Param call) {
+              if (call.hasThrowable()) return;
+              boolean fpsChange =
+                  call.args.length == 2
+                      ? CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE.equals(call.args[0])
+                      : ((Map<?, ?>) call.args[0])
+                          .containsKey(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE);
+              if (fpsChange) applyPreviewFps(call.thisObject);
             }
           });
     }
-    Class<?> requests =
-        Class.forName(
-            "com.samsung.android.camera.core2.local.vendorkey.SemCaptureRequest", false, l);
+    // Patch the actual preview builders, including paths whose vendor helpers were inlined.
+    // No global Builder.set hook and no changes to the picture/record request maps.
     ModernHook.findAndHookMethod(
-        requests,
-        "e",
-        Map.class,
-        String.class,
-        CaptureRequest.Key.class,
-        Object.class,
+        maker,
+        "applySettings",
         new ModernHook.Callback() {
-          protected void beforeHookedMethod(ModernHook.Param p) {
-            if (!rt.enabled(ConfigProvider.FPS) || owner.get() == null) return;
-            try {
-              if (CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE.equals(p.args[2])) {
-                previewRequest(p, owner.get());
-              }
-            } catch (Throwable error) {
-              rt.fail(error);
-            }
+          protected void beforeHookedMethod(ModernHook.Param call) {
+            applyPreviewFps(call.thisObject);
+          }
+        });
+    Class<?> photoMaker =
+        Class.forName("com.samsung.android.camera.core2.maker.PhotoMakerBase", false, l);
+    ModernHook.findAndHookMethod(
+        photoMaker,
+        "startPreviewRepeating",
+        new ModernHook.Callback() {
+          protected void beforeHookedMethod(ModernHook.Param call) {
+            applyPreviewFps(call.thisObject);
           }
         });
     Class<?> callback =
@@ -111,8 +120,7 @@ final class CameraHooks17 {
     Activity a = activity.get();
     if (a == null || a.isFinishing()) return Integer.MIN_VALUE;
     try {
-      Object settings = Reflect.get(a, "j");
-      return (int) Reflect.method(settings.getClass(), "x", settingsKey).invoke(settings, modeKey);
+      return (int) readMode.invoke(cameraSettings.get(a), modeKey);
     } catch (ReflectiveOperationException e) {
       return Integer.MIN_VALUE;
     }
@@ -159,47 +167,71 @@ final class CameraHooks17 {
     rt.report("VIDEO: disabled; restored native 30 fps selection");
   }
 
-  private void previewRequest(ModernHook.Param p, Object maker) throws Exception {
-    if (p.args[0] != Reflect.get(maker, "mPreviewRequestBuilderMap")) return;
-    int type = (int) Reflect.call(maker, "getMakerType");
-    int shooting = (int) Reflect.call(maker, "getMakerShootingMode");
-    if (mode() != 0 || type != 1 || (shooting != 1 && shooting != 2)) return;
-    String id = (String) p.args[1];
-    CameraCharacteristics c = capabilities.get(id);
-    if (c == null) {
-      c = rt.context.getSystemService(CameraManager.class).getCameraCharacteristics(id);
-      capabilities.put(id, c);
-    }
-    Range<Integer>[] ranges = c.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
-    boolean fixed = ranges != null && Arrays.asList(ranges).contains(new Range<>(60, 60));
-    Size size = (Size) Reflect.get(maker, "mMainPreviewSurfaceSize");
-    StreamConfigurationMap map = c.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-    long duration = 0;
-    if (map != null && size != null) {
-      try {
-        duration = map.getOutputMinFrameDuration(SurfaceTexture.class, size);
-      } catch (IllegalArgumentException ignored) {
+  private void applyPreviewFps(Object maker) {
+    if (!rt.enabled(ConfigProvider.FPS) || mode() != 0) return;
+    try {
+      int type = (int) Reflect.call(maker, "getMakerType");
+      int shooting = (int) Reflect.call(maker, "getMakerShootingMode");
+      if (type != 1 || (shooting != 1 && shooting != 2)) return;
+      Object device = Reflect.get(maker, "mCamDevice");
+      if (device == null) return;
+      String id = (String) Reflect.call(device, "m");
+      Size size = (Size) Reflect.get(maker, "mMainPreviewSurfaceSize");
+      if (size == null || thermalStatus >= 3) return;
+      Map<Size, Boolean> sizes =
+          previewSupport.computeIfAbsent(
+              id, ignored -> new java.util.concurrent.ConcurrentHashMap<>());
+      Boolean supported = sizes.get(size);
+      CameraCharacteristics characteristics = capabilities.get(id);
+      if (characteristics == null) {
+        characteristics =
+            rt.context.getSystemService(CameraManager.class).getCameraCharacteristics(id);
+        capabilities.put(id, characteristics);
       }
+      if (supported == null) {
+        Range<Integer>[] ranges =
+            characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
+        StreamConfigurationMap outputs =
+            characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+        long minimum =
+            outputs == null ? 0 : outputs.getOutputMinFrameDuration(SurfaceTexture.class, size);
+        supported =
+            PreviewPolicy.eligible(
+                true,
+                0,
+                type,
+                ranges != null && Arrays.asList(ranges).contains(PREVIEW_60),
+                minimum,
+                thermalStatus);
+        sizes.put(size, supported);
+      }
+      if (!supported) return;
+      List<CaptureRequest.Key<?>> physicalKeys =
+          characteristics.getAvailablePhysicalCameraRequestKeys();
+      Map<?, ?> builders = (Map<?, ?>) Reflect.get(maker, "mPreviewRequestBuilderMap");
+      rt.guard.arm();
+      for (Map.Entry<?, ?> item : builders.entrySet()) {
+        if (!(item.getValue() instanceof CaptureRequest.Builder builder)) continue;
+        if (!PREVIEW_60.equals(builder.get(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE)))
+          builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, PREVIEW_60);
+        if (physicalKeys != null
+            && physicalKeys.contains(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE)
+            && item.getKey() instanceof Pair<?, ?> pair
+            && pair.second instanceof Set<?> physicalIds) {
+          for (Object physicalId : physicalIds)
+            builder.setPhysicalCameraKey(
+                CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, PREVIEW_60, (String) physicalId);
+        }
+      }
+      stream = "id=" + id + "; preview=" + size;
+      rt.report("PHOTO: requested 60 fps; " + stream);
+    } catch (IllegalArgumentException unsupported) {
+      // A stale or unsupported stream keeps the native setup, without poisoning the host.
+      ModernHook.log(
+          "Photo preview: retaining native stream: " + unsupported.getClass().getSimpleName());
+    } catch (ReflectiveOperationException | CameraAccessException error) {
+      rt.fail(error);
     }
-    int thermal = rt.context.getSystemService(PowerManager.class).getCurrentThermalStatus();
-    if (!PreviewPolicy.eligible(true, mode(), type, fixed, duration, thermal)) {
-      rt.report(
-          "PHOTO: native fps; id="
-              + id
-              + "; preview="
-              + size
-              + "; minDuration="
-              + duration
-              + "; fixed60="
-              + fixed
-              + "; thermal="
-              + thermal);
-      return;
-    }
-    rt.guard.arm();
-    p.args[3] = new Range<>(60, 60);
-    stream = "id=" + id + "; preview=" + size;
-    rt.report("PHOTO: requested 60 fps; " + stream);
   }
 
   synchronized void beginZoomMeasurement() {
@@ -241,7 +273,10 @@ final class CameraHooks17 {
   }
 
   private void measure(TotalCaptureResult result) {
-    if (mode() != 0) return;
+    samples++;
+    long now = SystemClock.uptimeMillis();
+    if (zoomUntil == 0 && now < nextStatisticsRead) return;
+    nextStatisticsRead = now + 200;
     Long timestamp = result.get(CaptureResult.SENSOR_TIMESTAMP);
     if (timestamp == null) return;
     measureZoom(result, timestamp);
@@ -251,9 +286,8 @@ final class CameraHooks17 {
       samples = 0;
     }
     lastTimestamp = timestamp;
-    samples++;
     long elapsed = timestamp - firstTimestamp;
-    if (elapsed >= 2_000_000_000L && samples > 1) {
+    if (elapsed >= 5_000_000_000L && samples > 1 && mode() == 0) {
       double fps = (result.getFrameNumber() - firstFrame) * 1_000_000_000d / elapsed;
       double callbacks = (samples - 1) * 1_000_000_000d / elapsed;
       Long duration = result.get(CaptureResult.SENSOR_FRAME_DURATION);

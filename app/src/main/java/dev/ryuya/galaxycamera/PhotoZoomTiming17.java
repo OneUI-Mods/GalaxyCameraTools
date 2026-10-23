@@ -1,9 +1,14 @@
 package dev.ryuya.galaxycamera;
 
+import android.animation.Animator;
+import android.animation.ValueAnimator;
 import android.os.Handler;
 import android.view.Choreographer;
 import android.view.View;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +23,7 @@ final class PhotoZoomTiming17 {
   private Class<?> settingKey;
   private Object zoomKey;
   private Motion motion;
+  private WeakReference<ValueAnimator> nativeAnimator = new WeakReference<>(null);
 
   PhotoZoomTiming17(HostRuntime runtime, CameraHooks17 camera) {
     this.runtime = runtime;
@@ -72,12 +78,53 @@ final class PhotoZoomTiming17 {
             }
           }
         });
+    // The stock SUPER_STEADY category bypasses H2's animation entirely.
+    // Limit this override to an actual H2 invocation, never capability or touch checks.
+    ModernHook.findAndHookMethod(
+        zoomView,
+        "x2",
+        new ModernHook.Callback() {
+          protected void beforeHookedMethod(ModernHook.Param call) {
+            Selection active = selecting.get();
+            if (active != null && active.view == call.thisObject && active.steady)
+              call.setResult(true);
+          }
+        });
+    Class<?> nativeListener = Class.forName("v9.p", false, runtime.loader);
+    ModernHook.findAndHookMethod(
+        nativeListener,
+        "onAnimationStart",
+        Animator.class,
+        new ModernHook.Callback() {
+          protected void beforeHookedMethod(ModernHook.Param call) throws Exception {
+            Selection active = selecting.get();
+            if (active == null
+                || Reflect.get(call.thisObject, "b") != active.view
+                || (int) Reflect.get(call.thisObject, "a") != 0
+                || !(call.args[0] instanceof ValueAnimator animator)) return;
+            animator.setDuration(LensMotionTiming.duration((int) animator.getDuration()));
+            animator.setInterpolator(LensMotionTiming::phase);
+            nativeAnimator = new WeakReference<>(animator);
+            ModernHook.log(
+                "Lens motion: native animator; mode="
+                    + active.mode
+                    + "; steady="
+                    + active.steady
+                    + "; duration="
+                    + animator.getDuration());
+          }
+        });
     ModernHook.aroundMethod(
         Reflect.method(zoomView, "H2", int.class, int.class),
         chain -> {
-          if (!runtime.enabled(ConfigProvider.FPS) || camera.mode() != 0) return chain.proceed();
+          int mode = camera.mode();
+          if (!runtime.enabled(ConfigProvider.LENS_MOTION) || (mode != 0 && mode != 1))
+            return chain.proceed();
           if (motion != null) motion.returnToNative();
-          Selection selection = new Selection((View) chain.getThisObject());
+          View view = (View) chain.getThisObject();
+          boolean steady =
+              mode == 1 && "SUPER_STEADY".equals(String.valueOf(Reflect.get(view, "f")));
+          Selection selection = new Selection(view, mode, steady);
           selecting.set(selection);
           Object result;
           try {
@@ -113,18 +160,26 @@ final class PhotoZoomTiming17 {
         });
     runtime.onChanged(
         () -> {
-          if (motion != null && !runtime.enabled(ConfigProvider.FPS)) motion.returnToNative();
+          if (!runtime.enabled(ConfigProvider.LENS_MOTION)) {
+            if (motion != null) motion.returnToNative();
+            ValueAnimator current = nativeAnimator.get();
+            if (current != null && current.isRunning()) current.end();
+          }
         });
   }
 
   private static final class Selection {
     final View view;
+    final int mode;
+    final boolean steady;
     Runnable runner;
     ArrayList<?> points;
     long generation;
 
-    Selection(View view) {
+    Selection(View view, int mode, boolean steady) {
       this.view = view;
+      this.mode = mode;
+      this.steady = steady;
     }
   }
 
@@ -134,7 +189,9 @@ final class PhotoZoomTiming17 {
     final Object settings;
     final Handler nativeHandler;
     final float previousFrameRate;
-    final int duration;
+    final int duration, nativeDuration;
+    final Field generationField, runningField;
+    final Method writeZoom, updateButtons, updateLabel;
     long started;
     int lastZoom = Integer.MIN_VALUE, frames;
     boolean stopped;
@@ -145,11 +202,17 @@ final class PhotoZoomTiming17 {
         curve.add(
             new ZoomCurve.Point((float) Reflect.get(point, "a"), (int) Reflect.get(point, "b")));
       }
-      duration = ZoomCurve.duration(curve);
-      if (duration <= 0 || duration > 3000)
+      nativeDuration = ZoomCurve.duration(curve);
+      duration = LensMotionTiming.duration(nativeDuration);
+      if (nativeDuration <= 0 || nativeDuration > 3000)
         throw new IllegalArgumentException("Unknown curve duration");
       settings = Reflect.get(Reflect.get(selection.view, "b"), "d");
       nativeHandler = (Handler) Reflect.get(selection.view, "I");
+      generationField = Reflect.field(selection.view.getClass(), "l");
+      runningField = Reflect.field(selection.view.getClass(), "p");
+      writeZoom = Reflect.method(settings.getClass(), "V", int.class, settingKey);
+      updateButtons = Reflect.method(selection.view.getClass(), "C2", int.class);
+      updateLabel = Reflect.method(selection.view.getClass(), "N2", int.class);
       previousFrameRate = selection.view.getRequestedFrameRate();
     }
 
@@ -157,29 +220,38 @@ final class PhotoZoomTiming17 {
       started = System.nanoTime();
       selection.view.setRequestedFrameRate(60f);
       Choreographer.getInstance().postFrameCallback(this);
-      ModernHook.log("Photo zoom: eased native curve, display synchronized; duration=" + duration);
+      ModernHook.log(
+          "Lens motion: eased curve, display synchronized; mode="
+              + selection.mode
+              + "; steady="
+              + selection.steady
+              + "; duration="
+              + duration);
     }
 
     @Override
     public void doFrame(long frameTimeNanos) {
       if (stopped) return;
       try {
-        if (((Number) Reflect.get(selection.view, "l")).longValue() != selection.generation
-            || !(boolean) Reflect.get(selection.view, "p")) {
+        if (generationField.getInt(selection.view) != selection.generation
+            || !runningField.getBoolean(selection.view)) {
           stop();
           return;
         }
-        if (!runtime.enabled(ConfigProvider.FPS) || camera.mode() != 0) {
+        if (!runtime.enabled(ConfigProvider.LENS_MOTION) || camera.mode() != selection.mode) {
           returnToNative();
           return;
         }
         int elapsed = (int) Math.max(0, (frameTimeNanos - started) / 1_000_000);
-        int value = Math.round(ZoomCurve.valueAt(curve, elapsed) * 1000);
+        int value =
+            Math.round(
+                ZoomCurve.valueAt(
+                        curve, LensMotionTiming.curveTime(elapsed, duration, nativeDuration))
+                    * 1000);
         if (value != lastZoom) {
-          Reflect.method(settings.getClass(), "V", int.class, settingKey)
-              .invoke(settings, value, zoomKey);
-          Reflect.method(selection.view.getClass(), "C2", int.class).invoke(selection.view, value);
-          Reflect.method(selection.view.getClass(), "N2", int.class).invoke(selection.view, value);
+          writeZoom.invoke(settings, value, zoomKey);
+          updateButtons.invoke(selection.view, value);
+          updateLabel.invoke(selection.view, value);
           lastZoom = value;
           frames++;
         }
@@ -201,10 +273,12 @@ final class PhotoZoomTiming17 {
       if (stopped) return;
       stop();
       try {
-        if (((Number) Reflect.get(selection.view, "l")).longValue() != selection.generation
-            || !(boolean) Reflect.get(selection.view, "p")) return;
+        if (generationField.getInt(selection.view) != selection.generation
+            || !runningField.getBoolean(selection.view)) return;
         int elapsed = (int) Math.max(0, (System.nanoTime() - started) / 1_000_000);
-        int index = ZoomCurve.nextIndex(curve, elapsed);
+        int index =
+            ZoomCurve.nextIndex(
+                curve, LensMotionTiming.curveTime(elapsed, duration, nativeDuration));
         Runnable continuation =
             (Runnable)
                 nativeStep.newInstance(
