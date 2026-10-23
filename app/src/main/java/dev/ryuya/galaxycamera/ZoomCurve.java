@@ -1,5 +1,6 @@
 package dev.ryuya.galaxycamera;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /** Time-based sampling preserves native easing, endpoints and duration even after missed frames. */
@@ -32,6 +33,53 @@ final class ZoomCurve {
       elapsed -= point.delayMillis();
     }
     return points.get(points.size() - 1).zoom();
+  }
+
+  static List<Point> between(List<Point> source, float from, float to) {
+    if (duration(source) <= 0 || from == to) return null;
+    float first = source.get(0).zoom(), last = source.get(source.size() - 1).zoom();
+    boolean increasing = last > first;
+    if ((to > from) != increasing
+        || from < Math.min(first, last)
+        || from > Math.max(first, last)
+        || to < Math.min(first, last)
+        || to > Math.max(first, last)) return null;
+    for (int i = 1; i < source.size(); i++) {
+      if ((source.get(i).zoom() - source.get(i - 1).zoom()) * (increasing ? 1 : -1) < 0)
+        return null;
+    }
+    int start = timeAt(source, from), end = timeAt(source, to);
+    if (end <= start) return null;
+    List<Point> points = new ArrayList<>();
+    int absolute = 0, previousTime = start;
+    float previousZoom = from;
+    for (Point point : source) {
+      if (absolute > start && absolute < end) {
+        points.add(new Point(previousZoom, absolute - previousTime));
+        previousZoom = point.zoom();
+        previousTime = absolute;
+      }
+      absolute += point.delayMillis();
+    }
+    points.add(new Point(previousZoom, end - previousTime));
+    points.add(new Point(to, 0));
+    return points;
+  }
+
+  private static int timeAt(List<Point> source, float zoom) {
+    int time = 0;
+    for (int i = 0; i < source.size() - 1; i++) {
+      Point point = source.get(i), next = source.get(i + 1);
+      if (zoom >= Math.min(point.zoom(), next.zoom())
+          && zoom <= Math.max(point.zoom(), next.zoom())) {
+        if (point.zoom() == next.zoom()) return time;
+        return time
+            + Math.round(
+                point.delayMillis() * (zoom - point.zoom()) / (next.zoom() - point.zoom()));
+      }
+      time += point.delayMillis();
+    }
+    return time;
   }
 
   static int nextIndex(List<Point> points, int elapsedMillis) {

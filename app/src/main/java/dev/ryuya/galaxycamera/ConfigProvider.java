@@ -55,6 +55,29 @@ public final class ConfigProvider extends ContentProvider {
   public Bundle call(String method, String arg, Bundle input) {
     String who = caller(method);
     var prefs = getContext().getSharedPreferences("settings", 0);
+    if ("zoom_curves_publish".equals(method)) {
+      if (!CAMERA.equals(who)) throw new SecurityException("Camera only");
+      try {
+        StockZoomCurves.decode(arg);
+      } catch (org.json.JSONException error) {
+        throw new IllegalArgumentException("Invalid zoom curves", error);
+      }
+      getContext()
+          .getSharedPreferences("stock_zoom", 0)
+          .edit()
+          .putString("firmware", Build.FINGERPRINT)
+          .putString("curves", arg)
+          .apply();
+      return Bundle.EMPTY;
+    }
+    if ("zoom_curves_read".equals(method)) {
+      if (!EXPERT.equals(who)) throw new SecurityException("Expert RAW only");
+      var stock = getContext().getSharedPreferences("stock_zoom", 0);
+      Bundle result = new Bundle();
+      if (Build.FINGERPRINT.equals(stock.getString("firmware", "")))
+        result.putString("curves", stock.getString("curves", "[]"));
+      return result;
+    }
     if ("light_read".equals(method)) return lightRelay.state(prefs.getBoolean(PANEL_LIGHT, false));
     if ("light_state".equals(method)) {
       if (!CAMERA.equals(who) || input == null) throw new SecurityException("Camera only");

@@ -9,7 +9,9 @@ import android.hardware.camera2.CameraManager;
 import android.util.SizeF;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.animation.LinearInterpolator;
 import android.view.animation.PathInterpolator;
+import java.util.List;
 
 /** Visual lens handoff; never changes RAW capture requests, crop regions or saved settings. */
 final class RawLensMotion17 {
@@ -19,6 +21,7 @@ final class RawLensMotion17 {
   private final SurfaceView preview;
   private final Runnable completed;
   private final float ratio;
+  private final List<ZoomCurve.Point> stockCurve;
   private final float previewScaleX, previewScaleY, previewPivotX, previewPivotY;
   private final float previewFrameRate, snapshotFrameRate;
   private final Rect previewClip;
@@ -33,6 +36,7 @@ final class RawLensMotion17 {
     this.runtime = runtime;
     this.layer = layer;
     this.completed = completed;
+    stockCurve = StockZoomCurves.read(runtime, from, to);
     Object binding = Reflect.get(layer, "mViewBinding");
     snapshot = (View) Reflect.get(binding, "h");
     blur = (View) Reflect.get(binding, "g");
@@ -67,7 +71,11 @@ final class RawLensMotion17 {
     preview.setRequestedFrameRate(60f);
     runtime.main.postDelayed(timeout, 2000);
     startTravel();
-    ModernHook.log("Expert RAW lens motion: field-of-view ratio=" + ratio);
+    ModernHook.log(
+        "Expert RAW lens motion: field-of-view ratio="
+            + ratio
+            + "; stock curve="
+            + (stockCurve != null));
   }
 
   void onPreviewReady() {
@@ -83,13 +91,24 @@ final class RawLensMotion17 {
 
   private void startTravel() {
     zoom = ValueAnimator.ofFloat(0f, 1f);
-    // Same easing and short/long travel durations as the reviewed stock Camera zoom.
-    zoom.setInterpolator(new PathInterpolator(0.22f, 0.25f, 0f, 1f));
-    zoom.setDuration(Math.min(ratio, 1f / ratio) < 0.34f ? 800 : 200);
+    // Prefer the exact numeric curve read from the installed stock Camera at runtime.
+    zoom.setInterpolator(
+        stockCurve == null ? new PathInterpolator(0.22f, 0.25f, 0f, 1f) : new LinearInterpolator());
+    zoom.setDuration(
+        stockCurve == null
+            ? (Math.min(ratio, 1f / ratio) < 0.34f ? 800 : 200)
+            : ZoomCurve.duration(stockCurve));
     zoom.addUpdateListener(
         value -> {
           if (finished) return;
           progress = (float) value.getAnimatedValue();
+          if (stockCurve != null) {
+            float first = stockCurve.get(0).zoom();
+            float last = stockCurve.get(stockCurve.size() - 1).zoom();
+            float current =
+                ZoomCurve.valueAt(stockCurve, Math.round(progress * zoom.getDuration()));
+            progress = Math.max(0f, Math.min(1f, (current - first) / (last - first)));
+          }
           if (ratio > 1f) {
             float scale = 1f + (ratio - 1f) * progress;
             snapshot.setScaleX(scale);

@@ -28,6 +28,31 @@ final class PhotoZoomTiming17 {
     Class<?> zoomView =
         Class.forName(
             "com.sec.android.app.camera.layer.keyscreen.zoom.ZoomView", false, runtime.loader);
+    ModernHook.findAndHookMethod(
+        zoomView,
+        "initialize",
+        new ModernHook.Callback() {
+          protected void afterHookedMethod(ModernHook.Param parameter) {
+            try {
+              Object source = Reflect.get(parameter.thisObject, "k");
+              String curves =
+                  StockZoomCurves.encode((java.util.Map<?, ?>) Reflect.get(source, "a"));
+              runtime.worker.post(
+                  () -> {
+                    try {
+                      runtime
+                          .context
+                          .getContentResolver()
+                          .call(ConfigProvider.URI, "zoom_curves_publish", curves, null);
+                    } catch (RuntimeException error) {
+                      ModernHook.log("Stock curve sharing unavailable");
+                    }
+                  });
+            } catch (ReflectiveOperationException | org.json.JSONException error) {
+              ModernHook.log("Stock curve sharing unavailable");
+            }
+          }
+        });
     Class<?> stepType = Class.forName("v9.m", false, runtime.loader);
     nativeStep = stepType.getDeclaredConstructor(zoomView, long.class, ArrayList.class, int.class);
     nativeStep.setAccessible(true);

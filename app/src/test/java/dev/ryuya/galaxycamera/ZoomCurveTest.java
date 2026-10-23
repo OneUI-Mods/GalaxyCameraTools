@@ -35,6 +35,17 @@ public class ZoomCurveTest {
   }
 
   @Test
+  public void nativeSubsectionRetainsIntermediateEasingAndEndpoints() {
+    var section = ZoomCurve.between(curve, 1.1f, 2.1f);
+    assertNotNull(section);
+    assertEquals(24, ZoomCurve.duration(section));
+    assertEquals(1.1f, section.get(0).zoom(), .0001f);
+    assertEquals(1.2f, ZoomCurve.valueAt(section, 16), .0001f);
+    assertEquals(2.1f, ZoomCurve.valueAt(section, 24), .0001f);
+    assertNull(ZoomCurve.between(curve, 3f, 1f));
+  }
+
+  @Test
   public void invalidCurveIsRejectedBeforeTakingOverTheNativeRunner() {
     assertEquals(
         -1, ZoomCurve.duration(List.of(new ZoomCurve.Point(1f, -1), new ZoomCurve.Point(3f, 0))));
