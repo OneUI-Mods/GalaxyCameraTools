@@ -21,6 +21,7 @@ final class Camera2Unlock17 {
   private static final Set<String> REVIEWED_PHYSICAL_LENSES = Set.of("5", "6", "7");
   private final HostRuntime runtime;
   private final ThreadLocal<String> openingPhysicalLens = new ThreadLocal<>();
+  private final ThreadLocal<Integer> nativeRequestDepth = new ThreadLocal<>();
   private final Map<Object, String> openedDevices =
       Collections.synchronizedMap(new WeakHashMap<>());
   private volatile Set<String> availablePhysicalLenses = Set.of();
@@ -88,9 +89,29 @@ final class Camera2Unlock17 {
         new ModernHook.Callback() {
           protected void afterHookedMethod(ModernHook.Param call) {
             String physical = openedDevices.get(call.thisObject);
-            if (!call.hasThrowable() && physical != null) call.setResult(physical);
+            if (!call.hasThrowable() && physical != null && nativeRequestDepth.get() == null)
+              call.setResult(physical);
           }
         });
+    // Android serializes the logical ID into every request. Keep that ID at 0
+    // while native builders are created; public getId() still names the selected lens.
+    for (Method method : device.getDeclaredMethods()) {
+      if (!Set.of("createCaptureRequest", "createReprocessCaptureRequest", "startStreaming")
+          .contains(method.getName())) continue;
+      ModernHook.aroundMethod(
+          method,
+          chain -> {
+            if (!openedDevices.containsKey(chain.getThisObject())) return chain.proceed();
+            Integer previousDepth = nativeRequestDepth.get();
+            nativeRequestDepth.set(previousDepth == null ? 1 : previousDepth + 1);
+            try {
+              return chain.proceed();
+            } finally {
+              if (previousDepth == null) nativeRequestDepth.remove();
+              else nativeRequestDepth.set(previousDepth);
+            }
+          });
+    }
     for (Method method : CameraManager.class.getDeclaredMethods()) {
       if (!method.getName().equals("openCameraDeviceUserAsync")) continue;
       ModernHook.hookMethod(
