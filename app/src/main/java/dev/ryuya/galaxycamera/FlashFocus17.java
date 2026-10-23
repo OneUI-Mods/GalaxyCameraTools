@@ -17,6 +17,8 @@ final class FlashFocus17 {
   private CaptureRequest.Key<Integer> nativeLensPosition;
   private final CaptureResult.Key<Integer> nativeLensPositionResult =
       new CaptureResult.Key<>("samsung.android.lens.focusLensPos", Integer.class);
+  private final CaptureResult.Key<int[]> nativeLensInfo =
+      new CaptureResult.Key<>("samsung.android.lens.info.currentInfo", int[].class);
   private volatile int minimumHeldPosition, maximumHeldPosition;
   private volatile float minimumHeldDistance, maximumHeldDistance;
   private volatile int heldResultCount;
@@ -85,7 +87,7 @@ final class FlashFocus17 {
             if (hold != null) {
               Integer mode = ((TotalCaptureResult) call.args[0]).get(CaptureResult.CONTROL_AF_MODE);
               if (mode == null || mode != CaptureResult.CONTROL_AF_MODE_OFF) return;
-              Integer position = ((TotalCaptureResult) call.args[0]).get(nativeLensPositionResult);
+              Integer position = measuredLensPosition((TotalCaptureResult) call.args[0]);
               if (position != null) {
                 minimumHeldPosition = Math.min(minimumHeldPosition, position);
                 maximumHeldPosition = Math.max(maximumHeldPosition, position);
@@ -102,7 +104,7 @@ final class FlashFocus17 {
             try {
               Float distance =
                   ((TotalCaptureResult) call.args[0]).get(CaptureResult.LENS_FOCUS_DISTANCE);
-              Integer position = ((TotalCaptureResult) call.args[0]).get(nativeLensPositionResult);
+              Integer position = measuredLensPosition((TotalCaptureResult) call.args[0]);
               if (distance != null && position != null && Float.isFinite(distance) && distance >= 0)
                 sample =
                     new FocusSample(
@@ -225,6 +227,13 @@ final class FlashFocus17 {
         () -> {
           if (!runtime.enabled(ConfigProvider.FOCUS)) release("disabled");
         });
+  }
+
+  private Integer measuredLensPosition(TotalCaptureResult result) {
+    // This is the same position source used by Samsung's LensInfoCallback.
+    int[] lensInfo = result.get(nativeLensInfo);
+    if (lensInfo != null && lensInfo.length > 3) return lensInfo[3];
+    return result.get(nativeLensPositionResult);
   }
 
   private synchronized void release(String reason) {
