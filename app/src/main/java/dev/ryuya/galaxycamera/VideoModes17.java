@@ -25,6 +25,23 @@ final class VideoModes17 {
     uhd = Reflect.value(resolution, "RESOLUTION_3840X2160_120FPS");
     uhdCommand = Reflect.value(commands, "BACK_PRO_CAMCORDER_RESOLUTION_UHD_120");
     backSetting = Reflect.value(setting, "BACK_CAMCORDER_RESOLUTION");
+    // Normal Video otherwise allocates its usual high-resolution JPEG stream,
+    // even though Samsung's 120 fps feature map explicitly disables snapshots.
+    ModernHook.findAndHookMethod(
+        util,
+        "C0",
+        int.class,
+        resolution,
+        new ModernHook.Callback() {
+          protected void beforeHookedMethod(ModernHook.Param p) {
+            if (!rt.enabled(ConfigProvider.VIDEO) || camera.mode() != 1) return;
+            try {
+              if ((int) p.args[0] == 0 && supported(p.args[1])) p.setResult(null);
+            } catch (Throwable e) {
+              rt.fail(e);
+            }
+          }
+        });
     for (String method : new String[] {"d1", "Z0"}) {
       ModernHook.findAndHookMethod(
           util,
