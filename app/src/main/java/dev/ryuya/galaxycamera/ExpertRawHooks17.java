@@ -53,6 +53,7 @@ final class ExpertRawHooks17 {
             if (!rt.enabled(ConfigProvider.ANIMATION)
                 || Looper.myLooper() != Looper.getMainLooper()) return;
             try {
+              ModernHook.log("Expert RAW presenter lens request=" + p.args[0]);
               Object source = Reflect.get(p.thisObject, "mEngine");
               if (prepare(source, (int) p.args[0])) {
                 Reflect.call(Reflect.call(source, "getAeAfManager"), "resetAeAfAwb");
@@ -180,11 +181,15 @@ final class ExpertRawHooks17 {
         Reflect.call(Reflect.call(context, "getLayerManager"), "getPreviewAnimationLayerManager");
     if (!"NONE".equals(String.valueOf(Reflect.call(layer, "getCurrentAnimationType")))) {
       rt.report("EXPERT RAW: existing animation " + Reflect.call(layer, "getCurrentAnimationType"));
+      ModernHook.log(
+          "Expert RAW native animation already active: "
+              + Reflect.call(layer, "getCurrentAnimationType"));
       return false;
     }
     Object settings = Reflect.call(context, "getCameraSettings");
     if ((int) Reflect.call(settings, "getCameraId") == cameraId) {
       rt.report("EXPERT RAW: settings already reference requested lens");
+      ModernHook.log("Expert RAW requested lens already selected: " + cameraId);
       return false;
     }
     Rect rect =

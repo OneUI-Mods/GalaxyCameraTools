@@ -15,7 +15,8 @@ final class CameraHooks17 {
   private final HostRuntime rt;
   private volatile WeakReference<Activity> activity = new WeakReference<>(null);
   private final ThreadLocal<Object> owner = new ThreadLocal<>();
-  private final Map<String, CameraCharacteristics> capabilities = new HashMap<>();
+  private final Map<String, CameraCharacteristics> capabilities =
+      new java.util.concurrent.ConcurrentHashMap<>();
   private Class<?> settingsKey;
   private Object modeKey;
   private String stream = "";
@@ -77,11 +78,14 @@ final class CameraHooks17 {
         Object.class,
         new ModernHook.Callback() {
           protected void beforeHookedMethod(ModernHook.Param p) {
-            if (!rt.enabled(ConfigProvider.FPS)
-                || owner.get() == null
-                || !CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE.equals(p.args[2])) return;
+            if (!rt.enabled(ConfigProvider.FPS) || owner.get() == null) return;
             try {
-              previewRequest(p, owner.get());
+              if (CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE.equals(p.args[2])) {
+                previewRequest(p, owner.get());
+              } else if (p.args[2] instanceof CaptureRequest.Key<?> key
+                  && key.getName().equals("samsung.android.control.transientAction")) {
+                previewZoomAction(p, owner.get());
+              }
             } catch (Throwable error) {
               rt.fail(error);
             }
@@ -116,7 +120,14 @@ final class CameraHooks17 {
             if (!rt.enabled(ConfigProvider.FPS) || mode() != 0) return;
             try {
               String id = (String) Reflect.get(p.thisObject, "e");
-              if (!eligiblePreviewSizes.containsKey(id)) return;
+              if (!eligiblePreviewSizes.containsKey(id)) {
+                Object surfaces = Reflect.get(p.args[0], "a");
+                Object preview = Reflect.get(surfaces, "a");
+                if (preview == null) return;
+                Size size = (Size) Reflect.get(preview, "c");
+                if (!supportsPreview60(id, size)) return;
+                eligiblePreviewSizes.put(id, size);
+              }
               Object config = Reflect.get(p.args[0], "k");
               Map<?, ?> previewBuilders = (Map<?, ?>) Reflect.get(config, "a");
               for (Object value : previewBuilders.values()) {
@@ -127,7 +138,9 @@ final class CameraHooks17 {
                       "Photo session: id=" + id + "; initial FPS=" + previous + " -> [60, 60]");
                 }
               }
-            } catch (ReflectiveOperationException | IllegalArgumentException error) {
+            } catch (ReflectiveOperationException
+                | CameraAccessException
+                | IllegalArgumentException error) {
               rt.fail(error);
             }
           }
@@ -192,6 +205,44 @@ final class CameraHooks17 {
     rt.report("VIDEO: disabled; restored native 30 fps selection");
   }
 
+  private boolean supportsPreview60(String id, Size size) throws CameraAccessException {
+    if (size == null) return false;
+    CameraCharacteristics characteristics =
+        rt.context.getSystemService(CameraManager.class).getCameraCharacteristics(id);
+    Range<Integer>[] ranges =
+        characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
+    StreamConfigurationMap map =
+        characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+    if (ranges == null || map == null || !Arrays.asList(ranges).contains(new Range<>(60, 60)))
+      return false;
+    try {
+      return PreviewPolicy.eligible(
+          true,
+          mode(),
+          1,
+          true,
+          map.getOutputMinFrameDuration(SurfaceTexture.class, size),
+          rt.context.getSystemService(PowerManager.class).getCurrentThermalStatus());
+    } catch (IllegalArgumentException unsupported) {
+      return false;
+    }
+  }
+
+  private void previewZoomAction(ModernHook.Param p, Object maker) throws Exception {
+    if (mode() != 0
+        || (int) Reflect.call(maker, "getMakerType") != 1
+        || p.args[0] != Reflect.get(maker, "mPreviewRequestBuilderMap")
+        || !(p.args[3] instanceof Integer action)
+        || (action & 1) == 0) return;
+    String id = (String) p.args[1];
+    Size size = (Size) Reflect.get(maker, "mMainPreviewSurfaceSize");
+    if (!supportsPreview60(id, size)) return;
+    // Only the preview's transient-zoom bit is changed. Still capture and other action bits
+    // keep Samsung's original values, as do unsupported streams and thermal protection.
+    rt.guard.arm();
+    p.args[3] = action & ~1;
+  }
+
   private void previewRequest(ModernHook.Param p, Object maker) throws Exception {
     if (p.args[0] != Reflect.get(maker, "mPreviewRequestBuilderMap")) return;
     int type = (int) Reflect.call(maker, "getMakerType");
@@ -251,7 +302,7 @@ final class CameraHooks17 {
         ModernHook.log(
             String.format(
                 Locale.ROOT,
-                "Photo zoom sensor: %.1f fps; intervals=%d; over25ms=%d; requested=%s; result=%s;"
+                "Photo zoom preview: %.1f fps; intervals=%d; over25ms=%d; requested=%s; result=%s;"
                     + " exposure=%s",
                 zoomIntervals * 1_000_000_000d / zoomTotalNanos,
                 zoomIntervals,
