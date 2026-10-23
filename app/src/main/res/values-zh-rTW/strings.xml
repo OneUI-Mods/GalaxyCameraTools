@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+  <string name="legal_title">Licenses</string>
+  <string name="legal_catalog_hint">Choose a component for details</string>
+  <string name="legal_search">Search libraries</string>
+  <string name="legal_back">Back</string>
+  <string name="legal_license_text">License</string>
+  <string name="legal_notices">Notices</string>
+  <string name="legal_no_results">No matching libraries</string>
+  <string name="legal_load_error">Unable to load the license file.</string>
+  <string name="legal_reference_only">API reference only · not bundled</string>
+  <string name="legal_distribution_notices">Distribution notices</string>
+  <string name="app_name">Galaxy Camera Tools</string>
+  <string name="tab_camera">相機</string>
+  <string name="tab_raw">Expert RAW</string>
+  <string name="tab_info">狀態與資訊</string>
+  <string name="photo_section">照片預覽</string>
+  <string name="video_section">一般錄影</string>
+  <string name="raw_section">切換鏡頭</string>
+  <string name="photo_title">照片預覽使用60fps</string>
+  <string name="photo_summary">在一般照片模式下，目前預覽串流支援時要求60fps。保留照片原有的拍攝設定。過熱或不支援的尺寸使用相機預設設定。</string>
+  <string name="video_title">為一般錄影加入120fps</string>
+  <string name="video_summary">將Samsung支援的120fps錄影選項加入一般錄影模式，保留專業錄影的設定。</string>
+  <string name="video_limits">120fps僅限相機支援的解析度與鏡頭。此版本以後置FHD及UHD為對象。在確認支援的錄影流程前，不加入8K、HD、前置及特殊畫面比例。</string>
+  <string name="raw_title">平滑切換鏡頭</string>
+  <string name="raw_summary">使用Expert RAW原有的預覽快照、模糊及淡入淡出。若快照未傳回，會繼續一般切換，避免一直等待。</string>
+  <string name="raw_hint">適用於鏡頭更換。保留前後鏡頭及解析度切換已有的動畫。</string>
+  <string name="apply_hint">Camera Assistant與本應用程式的開關同步。變更相機設定後，請結束拍攝，強制停止相機並重新開啟，以更新錄影選項。</string>
+  <string name="setup_title">模組設定</string>
+  <string name="setup_summary">在Vector中啟用此模組，並選擇相機、Camera Assistant及Expert RAW。安裝或更新後，強制停止並重新開啟對應應用程式。</string>
+  <string name="support_summary">實驗支援：Galaxy S26 Ultra（SM-S948Q），Android 17 / One UI 9 BZI9。相機17.0.00.43、Camera Assistant 5.0.00.7、Expert RAW 6.0.02.8。其他版本保留原有行為。需要相容API 102的框架。</string>
+  <string name="status_title">模組狀態</string>
+  <string name="not_loaded">尚未載入。啟用模組後請開啟對應應用程式。</string>
+  <string name="reset_guard">重設當機保護</string>
+  <string name="guard_summary">模組操作後，兩分鐘內確認三次異常結束時，將停止變更對應應用程式。一般處理程序重新啟動不計入。重設保護後，強制停止並重新開啟該應用程式以重試。</string>
+  <string name="version">版本 %1$s</string>
+</resources>

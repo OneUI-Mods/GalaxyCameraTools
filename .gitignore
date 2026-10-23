@@ -1,0 +1,8 @@
+.gradle/
+**/build/
+local.properties
+.signing/
+dist/
+evidence/
+*.log
+.DS_Store

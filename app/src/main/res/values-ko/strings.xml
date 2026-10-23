@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+  <string name="legal_title">Licenses</string>
+  <string name="legal_catalog_hint">Choose a component for details</string>
+  <string name="legal_search">Search libraries</string>
+  <string name="legal_back">Back</string>
+  <string name="legal_license_text">License</string>
+  <string name="legal_notices">Notices</string>
+  <string name="legal_no_results">No matching libraries</string>
+  <string name="legal_load_error">Unable to load the license file.</string>
+  <string name="legal_reference_only">API reference only · not bundled</string>
+  <string name="legal_distribution_notices">Distribution notices</string>
+  <string name="app_name">Galaxy Camera Tools</string>
+  <string name="tab_camera">카메라</string>
+  <string name="tab_raw">Expert RAW</string>
+  <string name="tab_info">상태 및 정보</string>
+  <string name="photo_section">사진 미리보기</string>
+  <string name="video_section">일반 동영상</string>
+  <string name="raw_section">렌즈 전환</string>
+  <string name="photo_title">사진 미리보기 60fps</string>
+  <string name="photo_summary">일반 사진 모드에서 현재 미리보기 스트림이 지원하면 60fps를 요청합니다. 저장하는 사진의 촬영 설정은 유지합니다. 과열되거나 지원하지 않는 크기는 기본 설정을 사용합니다.</string>
+  <string name="video_title">일반 동영상에 120fps 추가</string>
+  <string name="video_summary">Samsung이 지원하는 120fps 녹화 옵션을 일반 동영상 모드에 추가합니다. 프로 동영상 설정은 유지합니다.</string>
+  <string name="video_limits">120fps는 카메라가 지원하는 해상도와 렌즈에서만 사용할 수 있습니다. 이 버전은 후면 FHD와 UHD를 대상으로 합니다. 8K, HD, 전면 및 특수 화면 비율은 지원하는 녹화 경로를 확인하기 전까지 추가하지 않습니다.</string>
+  <string name="raw_title">부드러운 렌즈 전환</string>
+  <string name="raw_summary">Expert RAW의 기본 미리보기 스냅샷, 흐림 및 페이드를 사용합니다. 스냅샷이 도착하지 않으면 기다리지 않고 기본 렌즈 전환을 진행합니다.</string>
+  <string name="raw_hint">렌즈 변경에 적용합니다. 전면/후면 및 해상도 변경의 기존 애니메이션은 유지합니다.</string>
+  <string name="apply_hint">Camera Assistant와 이 앱의 스위치는 동기화됩니다. 카메라 설정을 변경한 후 촬영을 종료하고 카메라를 강제 종료한 뒤 다시 열어 녹화 옵션을 새로 고치세요.</string>
+  <string name="setup_title">모듈 설정</string>
+  <string name="setup_summary">Vector에서 이 모듈을 활성화하고 카메라, Camera Assistant 및 Expert RAW를 선택하세요. 설치 또는 업데이트 후 해당 앱을 강제 종료하고 다시 여세요.</string>
+  <string name="support_summary">실험적 지원: Galaxy S26 Ultra(SM-S948Q), Android 17 / One UI 9 BZI9. 카메라 17.0.00.43, Camera Assistant 5.0.00.7, Expert RAW 6.0.02.8. 다른 버전은 기본 동작을 유지합니다. API 102 호환 프레임워크가 필요합니다.</string>
+  <string name="status_title">모듈 상태</string>
+  <string name="not_loaded">아직 로드되지 않았습니다. 모듈을 활성화한 후 해당 앱을 여세요.</string>
+  <string name="reset_guard">충돌 보호 초기화</string>
+  <string name="guard_summary">모듈 작업 후 2분 이내에 충돌이 3회 확인되면 해당 앱의 변경을 중지합니다. 일반 프로세스 재시작은 세지 않습니다. 보호를 초기화한 뒤 앱을 강제 종료하고 다시 열어 재시도하세요.</string>
+  <string name="version">버전 %1$s</string>
+</resources>

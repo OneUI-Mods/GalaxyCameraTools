@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+  <string name="legal_title">Licenses</string>
+  <string name="legal_catalog_hint">Choose a component for details</string>
+  <string name="legal_search">Search libraries</string>
+  <string name="legal_back">Back</string>
+  <string name="legal_license_text">License</string>
+  <string name="legal_notices">Notices</string>
+  <string name="legal_no_results">No matching libraries</string>
+  <string name="legal_load_error">Unable to load the license file.</string>
+  <string name="legal_reference_only">API reference only · not bundled</string>
+  <string name="legal_distribution_notices">Distribution notices</string>
+  <string name="app_name">Galaxy Camera Tools</string>
+  <string name="tab_camera">Camera</string>
+  <string name="tab_raw">Expert RAW</string>
+  <string name="tab_info">Status &amp; info</string>
+  <string name="photo_section">Photo preview</string>
+  <string name="video_section">Normal video</string>
+  <string name="raw_section">Lens switching</string>
+  <string name="photo_title">60 fps photo preview</string>
+  <string name="photo_summary">Requests 60 fps in normal Photo mode when the current preview stream supports it. Saved photos keep the original capture settings. Heat or an unsupported stream uses the camera defaults.</string>
+  <string name="video_title">120 fps in normal Video mode</string>
+  <string name="video_summary">Adds Samsung-supported 120 fps recording choices to normal Video mode. Pro Video remains unchanged.</string>
+  <string name="video_limits">120 fps is limited to resolutions and lenses supported by the camera pipeline. This build targets rear FHD and UHD. 8K, HD, front cameras and special aspect ratios are not added without a supported recording path.</string>
+  <string name="raw_title">Smooth lens switching</string>
+  <string name="raw_summary">Uses Expert RAW’s native preview snapshot, blur and fade when changing lenses. If no snapshot arrives, the lens switch continues without waiting indefinitely.</string>
+  <string name="raw_hint">Applies to lens changes. Existing front/rear and resolution animations keep their native behavior.</string>
+  <string name="apply_hint">Camera Assistant and this app share the same switches. After changing Camera settings, force stop Camera and open it again to refresh its recording choices. Finish any recording or capture first.</string>
+  <string name="setup_title">Module setup</string>
+  <string name="setup_summary">Enable this module in Vector with Samsung Camera, Camera Assistant and Expert RAW selected. Force stop and reopen those apps after installing or updating the module.</string>
+  <string name="support_summary">Experimental support: Galaxy S26 Ultra (SM-S948Q), Android 17 / One UI 9 BZI9; Camera 17.0.00.43, Camera Assistant 5.0.00.7, Expert RAW 6.0.02.8. Other versions keep their original behavior. Requires an API 102 compatible framework.</string>
+  <string name="status_title">Module status</string>
+  <string name="not_loaded">Not loaded yet. Open the corresponding app after enabling the module.</string>
+  <string name="reset_guard">Reset crash protection</string>
+  <string name="guard_summary">Three confirmed crashes within two minutes after module operations stop changes in that app. Normal process restarts do not count. Reset protection and force stop/reopen the affected app to retry.</string>
+  <string name="version">Version %1$s</string>
+</resources>

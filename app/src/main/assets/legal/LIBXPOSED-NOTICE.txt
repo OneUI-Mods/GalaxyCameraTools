@@ -1,0 +1,6 @@
+libxposed API 102.0.0
+Compile-only API reference; not bundled in this APK.
+Artifact: io.github.libxposed:api:102.0.0
+Source: https://github.com/JingMatrix/libxposed-api
+Licensed under the Apache License, Version 2.0.
+See APACHE-2.0.txt for the complete license.
