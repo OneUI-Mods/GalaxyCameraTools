@@ -14,6 +14,8 @@ final class FlashFocus17 {
   private volatile FocusSample sample;
   private volatile FocusHold hold;
   private Method setPublicSetting, applySettings;
+  private volatile float minimumHeldDistance, maximumHeldDistance;
+  private volatile int heldResultCount;
   private final Runnable timeout = () -> release("timeout");
 
   private record FocusSample(WeakReference<Object> maker, float distance, long sampledAtMillis) {}
@@ -58,8 +60,17 @@ final class FlashFocus17 {
         Class.forName("com.samsung.android.camera.core2.CamCapability", false, loader),
         new ModernHook.Callback() {
           protected void afterHookedMethod(ModernHook.Param call) {
-            if (call.hasThrowable() || hold != null || !runtime.enabled(ConfigProvider.FOCUS))
+            if (call.hasThrowable() || !runtime.enabled(ConfigProvider.FOCUS)) return;
+            if (hold != null) {
+              Float measuredDistance =
+                  ((TotalCaptureResult) call.args[0]).get(CaptureResult.LENS_FOCUS_DISTANCE);
+              if (measuredDistance != null) {
+                minimumHeldDistance = Math.min(minimumHeldDistance, measuredDistance);
+                maximumHeldDistance = Math.max(maximumHeldDistance, measuredDistance);
+                heldResultCount++;
+              }
               return;
+            }
             try {
               Float distance =
                   ((TotalCaptureResult) call.args[0]).get(CaptureResult.LENS_FOCUS_DISTANCE);
@@ -115,6 +126,8 @@ final class FlashFocus17 {
                       previousAfMode,
                       distance,
                       latest.distance);
+              minimumHeldDistance = maximumHeldDistance = latest.distance;
+              heldResultCount = 0;
               runtime.main.postDelayed(timeout, 8000);
               setPublicSetting.invoke(
                   currentMaker, CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
@@ -122,6 +135,7 @@ final class FlashFocus17 {
                   currentMaker, CaptureRequest.LENS_FOCUS_DISTANCE, latest.distance);
               applySettings.invoke(currentMaker);
               runtime.report("FLASH: focus held at " + latest.distance + " diopters");
+              ModernHook.log("Flash focus held at " + latest.distance);
             } catch (Throwable error) {
               release("error");
               runtime.fail(error);
@@ -185,6 +199,15 @@ final class FlashFocus17 {
           previous.maker, CaptureRequest.CONTROL_AF_MODE, previous.previousAfMode);
       applySettings.invoke(previous.maker);
       runtime.report("FLASH: autofocus restored (" + reason + ")");
+      ModernHook.log(
+          "Flash focus restored: "
+              + reason
+              + "; frames="
+              + heldResultCount
+              + "; range="
+              + minimumHeldDistance
+              + ".."
+              + maximumHeldDistance);
     } catch (ReflectiveOperationException error) {
       // A disconnect already released this maker; never reopen a camera to restore it.
       ModernHook.log("Flash focus restore after disconnect: " + error.getClass().getSimpleName());

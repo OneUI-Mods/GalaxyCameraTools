@@ -41,4 +41,7 @@
   <string name="focus_summary">將閃光前的對焦距離保持到拍攝完成。拍攝完成、取消或離開相機後恢復自動對焦。拍攝對象移動後，請先重新對焦。</string>
   <string name="panel_light_title">在相機中使用快捷面板手電筒</string>
   <string name="panel_light_summary">後置相機預覽可用時，將快捷面板的手電筒操作交給三星相機。離開相機後關閉。保留溫度及電量保護。</string>
+  <string name="tab_camera2">Camera2</string>
+  <string name="camera2_title">顯示Camera2附加鏡頭</string>
+  <string name="camera2_summary">向Vector中選定的一般相機應用顯示支援的附加後置相機ID。將相機應用加入模組範圍後重新啟動。仍需相機權限。不會增加不支援的解析度或影格率。應用程式本身可能不提供鏡頭選擇。</string>
 </resources>

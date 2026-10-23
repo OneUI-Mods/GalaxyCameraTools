@@ -41,4 +41,7 @@
   <string name="focus_summary">フラッシュ直前のピント位置を撮影まで維持します。撮影終了・キャンセル・カメラを離れた時にオートフォーカスへ戻します。被写体が動いた場合は、撮影前にピントを合わせ直してください。</string>
   <string name="panel_light_title">カメラ使用中もクイックパネルのライトを使う</string>
   <string name="panel_light_summary">背面カメラのプレビュー中は、クイックパネルのライト操作を純正カメラへ受け渡します。カメラを離れると消灯します。温度・電池残量の保護は維持します。</string>
+  <string name="tab_camera2">Camera2</string>
+  <string name="camera2_title">Camera2の追加レンズを公開</string>
+  <string name="camera2_summary">Vectorで選択した一般のカメラアプリへ、対応する追加の背面カメラIDを公開します。使うカメラアプリをモジュールの対象に追加し、そのアプリを開き直してください。カメラ権限は必要です。非対応の解像度やfpsは追加しません。アプリ側にレンズ選択がない場合もあります。</string>
 </resources>

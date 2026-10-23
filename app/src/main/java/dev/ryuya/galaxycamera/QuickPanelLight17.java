@@ -87,6 +87,20 @@ final class QuickPanelLight17 {
             }
           }
         });
+    Class<?> tileState =
+        Class.forName("com.android.systemui.plugins.qs.QSTile$State", false, loader);
+    ModernHook.findAndHookMethod(
+        tile,
+        "handleUpdateState",
+        tileState,
+        Object.class,
+        new ModernHook.Callback() {
+          protected void beforeHookedMethod(ModernHook.Param call) {
+            // Reopening the panel delivers Samsung's cached CameraManager state.
+            // Present the camera owner's acknowledgement instead of that stale OFF.
+            if (relayEnabled()) call.args[1] = cameraTorchEnabled;
+          }
+        });
     // Brightness/blink controls own separate CameraManager requests and must not
     // contend with Camera. The normal tile click and native controls return on exit.
     ModernHook.findAndHookMethod(

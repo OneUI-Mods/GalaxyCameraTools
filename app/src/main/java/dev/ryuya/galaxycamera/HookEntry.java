@@ -17,8 +17,7 @@ public final class HookEntry extends XposedModule {
   public void onPackageReady(PackageReadyParam p) {
     String name = p.getPackageName();
     ModernHook.log("Package ready: " + name + "; first=" + p.isFirstPackage());
-    if (!p.isFirstPackage() || !name.equals(process) || !ConfigProvider.HOSTS.contains(name))
-      return;
+    if (!p.isFirstPackage() || !name.equals(process)) return;
     ModernHook.findAndHookMethod(
         Application.class,
         "attach",
@@ -53,6 +52,7 @@ public final class HookEntry extends XposedModule {
               else if (name.equals(ConfigProvider.EXPERT) && "6.0.02.8".equals(version))
                 new ExpertRawHooks17(rt).install();
               else if (name.equals(ConfigProvider.SYSTEM_UI)) new QuickPanelLight17(rt).install();
+              else if (!ConfigProvider.HOSTS.contains(name)) new Camera2Unlock17(rt).install();
               else rt.report("UNSUPPORTED: application version " + version);
             } catch (Throwable e) {
               if (runtime != null) runtime.fail(e);

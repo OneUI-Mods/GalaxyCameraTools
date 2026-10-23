@@ -90,7 +90,8 @@ final class AssistantUi17 {
       R.string.raw_title,
       R.string.light_title,
       R.string.focus_title,
-      R.string.panel_light_title
+      R.string.panel_light_title,
+      R.string.camera2_title
     };
     int[] summaries = {
       R.string.photo_summary,
@@ -98,7 +99,8 @@ final class AssistantUi17 {
       R.string.raw_summary,
       R.string.light_summary,
       R.string.focus_summary,
-      R.string.panel_light_summary
+      R.string.panel_light_summary,
+      R.string.camera2_summary
     };
     for (int i = 0; i < ConfigProvider.KEYS.length; i++) {
       String key = ConfigProvider.KEYS[i];

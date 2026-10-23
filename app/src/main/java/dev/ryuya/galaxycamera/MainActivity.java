@@ -75,6 +75,8 @@ public final class MainActivity extends AppCompatActivity {
         raw,
         R.string.raw_hint,
         com.google.android.material.R.style.TextAppearance_Material3_BodyMedium);
+    LinearLayout camera2 = tabs.page(R.string.tab_camera2);
+    toggle(camera2, ConfigProvider.CAMERA2, R.string.camera2_title, R.string.camera2_summary);
     LinearLayout info = tabs.page(R.string.tab_info);
     LinearLayout requirements = card(info);
     text(

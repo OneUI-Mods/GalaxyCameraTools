@@ -41,4 +41,7 @@
   <string name="focus_summary">Keeps the focus distance measured just before the flash through the photo. Autofocus resumes after capture, cancellation or leaving Camera. Focus again before shooting when the subject moves.</string>
   <string name="panel_light_title">Quick Panel flashlight in Camera</string>
   <string name="panel_light_summary">Routes the Quick Panel flashlight to Samsung Camera while its rear preview is available. The light turns off when leaving Camera. Existing temperature and battery protections still apply.</string>
+  <string name="tab_camera2">Camera2</string>
+  <string name="camera2_title">Expose additional Camera2 lenses</string>
+  <string name="camera2_summary">Makes supported additional rear camera IDs visible in ordinary camera apps selected in Vector. Enable the module for each camera app, then restart that app. Camera permission is still required. This does not add unsupported resolutions or frame rates, and apps may not offer a lens selector.</string>
 </resources>

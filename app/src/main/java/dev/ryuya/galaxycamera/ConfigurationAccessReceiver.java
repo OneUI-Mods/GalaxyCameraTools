@@ -13,11 +13,17 @@ public final class ConfigurationAccessReceiver extends BroadcastReceiver {
     String[] packages = context.getPackageManager().getPackagesForUid(sender);
     if (packages == null) return;
     for (String name : packages) {
-      if (ConfigProvider.HOSTS.contains(name)) {
+      boolean host = ConfigProvider.HOSTS.contains(name);
+      boolean cameraClient =
+          sender >= 10000
+              && context.checkPermission(android.Manifest.permission.CAMERA, -1, sender)
+                  == android.content.pm.PackageManager.PERMISSION_GRANTED;
+      if (host || cameraClient) {
         context.grantUriPermission(
             name,
             ConfigProvider.URI,
-            Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                | (host ? Intent.FLAG_GRANT_WRITE_URI_PERMISSION : 0));
       }
     }
   }

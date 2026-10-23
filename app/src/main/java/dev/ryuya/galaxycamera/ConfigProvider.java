@@ -18,20 +18,23 @@ public final class ConfigProvider extends ContentProvider {
       ANIMATION = "expert_lens_animation",
       LIGHT = "ultra_wide_light",
       FOCUS = "flash_focus_hold",
-      PANEL_LIGHT = "camera_quick_panel_light";
+      PANEL_LIGHT = "camera_quick_panel_light",
+      CAMERA2 = "camera2_extra_lenses";
   static final Set<String> HOSTS = Set.of(CAMERA, ASSISTANT, EXPERT, SYSTEM_UI);
-  static final String[] KEYS = {FPS, VIDEO, ANIMATION, LIGHT, FOCUS, PANEL_LIGHT};
+  static final String[] KEYS = {FPS, VIDEO, ANIMATION, LIGHT, FOCUS, PANEL_LIGHT, CAMERA2};
   static final Uri URI = Uri.parse("content://dev.ryuya.galaxycamera.config");
 
   public boolean onCreate() {
     return true;
   }
 
-  private String caller() {
+  private String caller(String method) {
     int uid = Binder.getCallingUid();
     if (uid == android.os.Process.myUid()) return BuildConfig.APPLICATION_ID;
     String name = getCallingPackage();
-    if (uid / 100000 != 0 || name == null || !HOSTS.contains(name))
+    if (uid / 100000 != 0
+        || name == null
+        || (!HOSTS.contains(name) && !("get".equals(method) && normalCameraClient(uid))))
       throw new SecurityException("Unsupported caller");
     try {
       if (getContext().getPackageManager().getApplicationInfo(name, 0).uid != uid)
@@ -42,8 +45,15 @@ public final class ConfigProvider extends ContentProvider {
     return name;
   }
 
+  private boolean normalCameraClient(int uid) {
+    return uid >= 10000
+        && uid < 100000
+        && getContext().checkPermission(android.Manifest.permission.CAMERA, -1, uid)
+            == android.content.pm.PackageManager.PERMISSION_GRANTED;
+  }
+
   public Bundle call(String method, String arg, Bundle input) {
-    String who = caller();
+    String who = caller(method);
     var prefs = getContext().getSharedPreferences("settings", 0);
     if ("light_read".equals(method)) return lightRelay.state(prefs.getBoolean(PANEL_LIGHT, false));
     if ("light_state".equals(method)) {
