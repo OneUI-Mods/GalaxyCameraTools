@@ -15,8 +15,13 @@ final class CameraHooks17 {
   private final HostRuntime rt;
   private volatile WeakReference<Activity> activity = new WeakReference<>(null);
   private static final Range<Integer> PREVIEW_60 = new Range<>(60, 60);
-  private static final CaptureRequest.Key<Float> ZOOM_JUMP_TARGET =
-      new CaptureRequest.Key<>("samsung.android.control.zoomJumpTargetRatio", Float.class);
+  private static final CaptureRequest.Key<Integer> CAMERA_HEAT =
+      new CaptureRequest.Key<>("samsung.android.control.overHeatHint", Integer.class);
+
+  private record SavedPreviewFps(Range<Integer> global, Map<String, Range<Integer>> physical) {}
+
+  private final Map<CaptureRequest.Builder, SavedPreviewFps> previewOverrides =
+      Collections.synchronizedMap(new WeakHashMap<>());
   private final Map<String, Map<Size, Boolean>> previewSupport =
       new java.util.concurrent.ConcurrentHashMap<>();
   private volatile int thermalStatus;
@@ -26,6 +31,8 @@ final class CameraHooks17 {
       new java.util.concurrent.ConcurrentHashMap<>();
   private String reportedCameraId;
   private Size reportedPreviewSize;
+  private int reportedHeat = -1;
+  private boolean reportedHighRate;
   private final Map<String, CameraCharacteristics> capabilities =
       new java.util.concurrent.ConcurrentHashMap<>();
   private Class<?> settingsKey;
@@ -39,7 +46,7 @@ final class CameraHooks17 {
   private int samples;
   private long zoomUntil, zoomLastTimestamp, zoomIntervals, zoomTotalNanos, zoomSlowIntervals;
   private Range<Integer> zoomRequest;
-  private boolean zoomMetadataLogged;
+  private Integer zoomHeat;
 
   CameraHooks17(HostRuntime runtime) {
     rt = runtime;
@@ -190,7 +197,7 @@ final class CameraHooks17 {
       if (device == null) return;
       String id = (String) Reflect.call(device, "m");
       Size size = (Size) Reflect.get(maker, "mMainPreviewSurfaceSize");
-      if (size == null || thermalStatus >= 3) return;
+      if (size == null) return;
       Map<Size, Boolean> sizes =
           previewSupport.computeIfAbsent(
               id, ignored -> new java.util.concurrent.ConcurrentHashMap<>());
@@ -201,6 +208,7 @@ final class CameraHooks17 {
             rt.context.getSystemService(CameraManager.class).getCameraCharacteristics(id);
         capabilities.put(id, characteristics);
       }
+      // Cache immutable stream capabilities; live Android/Samsung thermal limits are checked below.
       if (supported == null) {
         Range<Integer>[] ranges =
             characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
@@ -215,7 +223,7 @@ final class CameraHooks17 {
                 type,
                 ranges != null && Arrays.asList(ranges).contains(PREVIEW_60),
                 minimum,
-                thermalStatus);
+                0);
         sizes.put(size, supported);
       }
       if (!supported) return;
@@ -226,12 +234,49 @@ final class CameraHooks17 {
         physicalFpsSupport.put(id, physicalFps);
       }
       Map<?, ?> builders = (Map<?, ?>) Reflect.get(maker, "mPreviewRequestBuilderMap");
-      rt.guard.arm();
+      boolean highRate = false;
+      int cameraHeat = 0;
+      boolean armed = false;
       for (Map.Entry<?, ?> item : builders.entrySet()) {
         if (!(item.getValue() instanceof CaptureRequest.Builder builder)) continue;
-        Float jumpTarget = builder.get(ZOOM_JUMP_TARGET);
-        if (jumpTarget != null && jumpTarget > 0f) builder.set(ZOOM_JUMP_TARGET, 0f);
-        if (!PREVIEW_60.equals(builder.get(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE)))
+        Integer heat = builder.get(CAMERA_HEAT);
+        cameraHeat = Math.max(cameraHeat, heat == null ? 0 : heat);
+        if (thermalStatus >= 3 || (heat != null && heat > 0)) {
+          SavedPreviewFps saved = previewOverrides.remove(builder);
+          if (saved != null) {
+            if (!armed) {
+              rt.guard.arm();
+              armed = true;
+            }
+            builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, saved.global());
+            for (var value : saved.physical().entrySet())
+              builder.setPhysicalCameraKey(
+                  CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, value.getValue(), value.getKey());
+          }
+          continue;
+        }
+        highRate = true;
+        if (!armed) {
+          rt.guard.arm();
+          armed = true;
+        }
+        Range<Integer> current = builder.get(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE);
+        if (!previewOverrides.containsKey(builder) || !PREVIEW_60.equals(current)) {
+          Map<String, Range<Integer>> originals = new HashMap<>();
+          if (physicalFps
+              && item.getKey() instanceof Pair<?, ?> pair
+              && pair.second instanceof Set<?> physicalIds) {
+            for (Object physicalId : physicalIds) {
+              String physicalIdString = (String) physicalId;
+              originals.put(
+                  physicalIdString,
+                  builder.getPhysicalCameraKey(
+                      CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, physicalIdString));
+            }
+          }
+          previewOverrides.put(builder, new SavedPreviewFps(current, originals));
+        }
+        if (!PREVIEW_60.equals(current))
           builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, PREVIEW_60);
         if (physicalFps
             && item.getKey() instanceof Pair<?, ?> pair
@@ -241,11 +286,21 @@ final class CameraHooks17 {
                 CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, PREVIEW_60, (String) physicalId);
         }
       }
-      if (!id.equals(reportedCameraId) || !size.equals(reportedPreviewSize)) {
+      if (!id.equals(reportedCameraId)
+          || !size.equals(reportedPreviewSize)
+          || reportedHeat != cameraHeat
+          || reportedHighRate != highRate) {
         reportedCameraId = id;
         reportedPreviewSize = size;
+        reportedHeat = cameraHeat;
+        reportedHighRate = highRate;
         stream = "id=" + id + "; preview=" + size;
-        rt.report("PHOTO: requested 60 fps; " + stream);
+        rt.report(
+            (highRate ? "PHOTO: requested 60 fps; " : "PHOTO: native fps; thermal fallback; ")
+                + "cameraHeat="
+                + cameraHeat
+                + "; "
+                + stream);
       }
     } catch (IllegalArgumentException unsupported) {
       // A stale or unsupported stream keeps the native setup, without poisoning the host.
@@ -262,48 +317,25 @@ final class CameraHooks17 {
     zoomRequest = null;
     zoomResultRange = null;
     zoomExposure = null;
-    zoomMetadataLogged = false;
+    zoomHeat = null;
   }
 
   private synchronized void measureZoom(TotalCaptureResult result, long timestamp) {
     if (zoomUntil == 0) return;
     if (SystemClock.uptimeMillis() >= zoomUntil) {
-      if (!zoomMetadataLogged) {
-        zoomMetadataLogged = true;
-        StringBuilder detail = new StringBuilder("Preview route:");
-        for (CaptureRequest.Key<?> key : result.getRequest().getKeys()) {
-          String name = key.getName();
-          String lower = name.toLowerCase(Locale.ROOT);
-          if (lower.contains("fps")
-              || lower.contains("duration")
-              || lower.contains("transient")
-              || lower.contains("shootingmode")
-              || lower.contains("zoomjump")
-              || lower.contains("livehdr")
-              || lower.contains("hint")
-              || lower.contains("captureintent")) {
-            Object value = result.getRequest().get(key);
-            detail
-                .append(" ")
-                .append(name)
-                .append("=")
-                .append(Arrays.deepToString(new Object[] {value}));
-          }
-        }
-        ModernHook.log(detail.toString());
-      }
       if (zoomIntervals > 0)
         ModernHook.log(
             String.format(
                 Locale.ROOT,
                 "Photo zoom preview: %.1f fps; intervals=%d; over25ms=%d; requested=%s; result=%s;"
-                    + " exposure=%s",
+                    + " exposure=%s; cameraHeat=%s",
                 zoomIntervals * 1_000_000_000d / zoomTotalNanos,
                 zoomIntervals,
                 zoomSlowIntervals,
                 zoomRequest,
                 zoomResultRange,
-                zoomExposure));
+                zoomExposure,
+                zoomHeat));
       zoomUntil = 0;
       return;
     }
@@ -317,6 +349,7 @@ final class CameraHooks17 {
     zoomRequest = result.getRequest().get(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE);
     zoomResultRange = result.get(CaptureResult.CONTROL_AE_TARGET_FPS_RANGE);
     zoomExposure = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+    zoomHeat = result.getRequest().get(CAMERA_HEAT);
   }
 
   private void measure(TotalCaptureResult result) {
@@ -343,12 +376,14 @@ final class CameraHooks17 {
       rt.report(
           String.format(
               Locale.ROOT,
-              "PHOTO: %.1f fps; callbacks=%.1f; frameDuration=%s; request=%s; override=%s; %s",
+              "PHOTO: %.1f fps; callbacks=%.1f; frameDuration=%s; request=%s; enabled=%s;"
+                  + " cameraHeat=%s; %s",
               fps,
               callbacks,
               duration,
               requested,
               rt.enabled(ConfigProvider.FPS),
+              result.getRequest().get(CAMERA_HEAT),
               stream));
       firstTimestamp = timestamp;
       firstFrame = result.getFrameNumber();

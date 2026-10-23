@@ -193,7 +193,9 @@ final class PhotoZoomTiming17 {
     final int duration, nativeDuration;
     final Field generationField, runningField;
     final Method writeZoom, updateButtons, updateLabel;
-    long started;
+    long started, sampledAt;
+    // A 120 Hz panel must not double the requests sent to a 60 fps camera stream.
+    static final long MIN_SAMPLE_INTERVAL_NANOS = 16_000_000L;
     int lastZoom = Integer.MIN_VALUE, frames;
     boolean stopped;
 
@@ -244,6 +246,13 @@ final class PhotoZoomTiming17 {
           return;
         }
         int elapsed = (int) Math.max(0, (frameTimeNanos - started) / 1_000_000);
+        if (sampledAt != 0
+            && frameTimeNanos - sampledAt < MIN_SAMPLE_INTERVAL_NANOS
+            && elapsed < duration) {
+          Choreographer.getInstance().postFrameCallback(this);
+          return;
+        }
+        sampledAt = frameTimeNanos;
         int value =
             Math.round(
                 ZoomCurve.valueAt(
