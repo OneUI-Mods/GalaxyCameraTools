@@ -46,6 +46,18 @@ public class ZoomCurveTest {
   }
 
   @Test
+  public void exactNativePairTakesPrecedenceOverAnEarlierWiderCurve() {
+    var wider = List.of(new ZoomCurve.Point(.6f, 100), new ZoomCurve.Point(5f, 0));
+    var exact =
+        List.of(
+            new ZoomCurve.Point(1f, 400), new ZoomCurve.Point(3f, 16), new ZoomCurve.Point(3f, 0));
+    var selected = ZoomCurve.transition(List.of(wider, exact), 1f, 3f);
+    assertEquals(exact, selected);
+    assertEquals(416, ZoomCurve.duration(selected));
+    assertNotNull(ZoomCurve.transition(List.of(wider), 1f, 3f));
+  }
+
+  @Test
   public void invalidCurveIsRejectedBeforeTakingOverTheNativeRunner() {
     assertEquals(
         -1, ZoomCurve.duration(List.of(new ZoomCurve.Point(1f, -1), new ZoomCurve.Point(3f, 0))));

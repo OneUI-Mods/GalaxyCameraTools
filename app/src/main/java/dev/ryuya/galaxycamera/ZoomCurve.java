@@ -35,6 +35,21 @@ final class ZoomCurve {
     return points.get(points.size() - 1).zoom();
   }
 
+  static List<Point> transition(List<List<Point>> curves, float from, float to) {
+    // Stock Camera checks an exact pair before taking a subsection of a wider curve.
+    for (List<Point> curve : curves) {
+      if (!curve.isEmpty()
+          && curve.get(0).zoom() == from
+          && curve.get(curve.size() - 1).zoom() == to
+          && between(curve, from, to) != null) return List.copyOf(curve);
+    }
+    for (List<Point> curve : curves) {
+      List<Point> section = between(curve, from, to);
+      if (section != null) return section;
+    }
+    return null;
+  }
+
   static List<Point> between(List<Point> source, float from, float to) {
     if (duration(source) <= 0 || from == to) return null;
     float first = source.get(0).zoom(), last = source.get(source.size() - 1).zoom();

@@ -51,14 +51,15 @@ public final class MainActivity extends AppCompatActivity {
     toggle(camera, ConfigProvider.FPS, R.string.photo_title, R.string.photo_summary);
     toggle(
         camera,
-        ConfigProvider.LENS_MOTION,
-        R.string.lens_motion_title,
-        R.string.lens_motion_summary);
-    toggle(
-        camera,
         ConfigProvider.LIGHT_PREVIEW,
         R.string.light_preview_title,
         R.string.light_preview_summary);
+    section(camera, R.string.lens_motion_section);
+    toggle(
+        camera,
+        ConfigProvider.LENS_MOTION,
+        R.string.lens_motion_title,
+        R.string.lens_motion_summary);
     section(camera, R.string.video_section);
     toggle(camera, ConfigProvider.VIDEO, R.string.video_title, R.string.video_summary);
     text(

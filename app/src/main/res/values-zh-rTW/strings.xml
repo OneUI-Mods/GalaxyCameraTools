@@ -48,4 +48,5 @@
     <string name="lens_motion_summary">為照片和影片的鏡頭切換加入緩動，包括超級防手震和水平鎖定。稍微延長切換時間，讓加減速更明顯。</string>
 <string name="light_preview_title">降低照片預覽負載</string>
 <string name="light_preview_summary">使用較低的受支援預覽解析度以降低繪製負載。重新開啟相機後生效。保留照片和影片的儲存解析度。</string>
+<string name="lens_motion_section">鏡頭切換</string>
 </resources>

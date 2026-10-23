@@ -48,4 +48,5 @@
     <string name="lens_motion_summary">为照片和视频的镜头切换添加缓动，包括超级防抖和水平锁定。稍微延长切换时间，让加减速更明显。</string>
 <string name="light_preview_title">降低照片预览负载</string>
 <string name="light_preview_summary">使用较低的受支持预览分辨率以降低绘制负载。重新打开相机后生效。保留照片和视频的保存分辨率。</string>
+<string name="lens_motion_section">镜头切换</string>
 </resources>

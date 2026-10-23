@@ -56,10 +56,7 @@ final class StockZoomCurves {
               .getContentResolver()
               .call(ConfigProvider.URI, "zoom_curves_read", null, null);
       if (data == null) return null;
-      for (List<ZoomCurve.Point> curve : decode(data.getString("curves", "[]"))) {
-        List<ZoomCurve.Point> section = ZoomCurve.between(curve, from, to);
-        if (section != null) return section;
-      }
+      return ZoomCurve.transition(decode(data.getString("curves", "[]")), from, to);
     } catch (RuntimeException | JSONException error) {
       ModernHook.log("Stock zoom curve unavailable; using stock easing fallback");
     }

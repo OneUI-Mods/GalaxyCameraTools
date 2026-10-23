@@ -48,4 +48,5 @@
     <string name="lens_motion_summary">Eases photo and video lens changes, including Super Steady and horizontal lock. Slightly longer transitions make acceleration and deceleration easier to see.</string>
 <string name="light_preview_title">Lighter photo preview</string>
 <string name="light_preview_summary">Uses a lower, supported preview resolution to reduce rendering load. Open the camera again to apply. Saved photo and video resolutions are unchanged.</string>
+<string name="lens_motion_section">Lens switching</string>
 </resources>

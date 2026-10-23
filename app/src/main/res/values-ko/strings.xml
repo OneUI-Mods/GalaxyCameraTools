@@ -48,4 +48,5 @@
     <string name="lens_motion_summary">사진과 동영상의 렌즈 전환에 가감속을 적용합니다. 슈퍼 스테디와 수평 잠금을 지원하며 전환 시간을 조금 늘립니다.</string>
 <string name="light_preview_title">사진 미리보기 부하 줄이기</string>
 <string name="light_preview_summary">지원되는 미리보기 해상도를 낮춰 렌더링 부하를 줄입니다. 카메라를 다시 열면 적용됩니다. 저장 사진과 동영상의 해상도는 유지됩니다.</string>
+<string name="lens_motion_section">렌즈 전환</string>
 </resources>

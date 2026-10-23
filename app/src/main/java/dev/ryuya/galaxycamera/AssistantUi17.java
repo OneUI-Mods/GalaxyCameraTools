@@ -112,7 +112,10 @@ final class AssistantUi17 {
           nativeSwitch.getConstructor(Context.class, AttributeSet.class).newInstance(host, null);
       call(pref, "setKey", String.class, "galaxycamera." + key);
       call(pref, "setPersistent", boolean.class, false);
-      call(pref, "setTitle", CharSequence.class, strings.getText(titles[i]));
+      CharSequence title = strings.getText(titles[i]);
+      if (ConfigProvider.ANIMATION.equals(key))
+        title = strings.getText(R.string.tab_raw) + ": " + title;
+      call(pref, "setTitle", CharSequence.class, title);
       call(pref, "setSummary", CharSequence.class, strings.getText(summaries[i]));
       Object callback =
           Proxy.newProxyInstance(
