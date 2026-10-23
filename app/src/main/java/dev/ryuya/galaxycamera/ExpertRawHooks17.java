@@ -12,6 +12,8 @@ final class ExpertRawHooks17 {
   private final HostRuntime rt;
   private final ThreadLocal<Boolean> original = ThreadLocal.withInitial(() -> false);
   private Pending pending;
+  private RawLensMotion17 motion;
+  private Integer queuedLens;
   private Class<?> animationType, callbackType, engineState;
   private Object previewChange, previewing;
   private Method switchCamera, request;
@@ -90,23 +92,53 @@ final class ExpertRawHooks17 {
             if (pending != null && pending.layer == p.thisObject) pending.finish(false);
           }
         });
+    ModernHook.findAndHookMethod(
+        animation,
+        "startPreviewChangeAnimation",
+        new ModernHook.Callback() {
+          protected void beforeHookedMethod(ModernHook.Param p) {
+            if (motion != null && motion.owns(p.thisObject)) p.setResult(null);
+          }
+        });
+    ModernHook.findAndHookMethod(
+        animation,
+        "hidePreviewAnimation",
+        Rect.class,
+        new ModernHook.Callback() {
+          protected void beforeHookedMethod(ModernHook.Param p) {
+            if (motion != null && motion.owns(p.thisObject)) {
+              motion.onPreviewReady();
+              p.setResult(null);
+            }
+          }
+        });
     Class<?> raw = Class.forName(BASE + "GalaxyRaw", false, l);
     ModernHook.findAndHookMethod(
         raw,
         "onPause",
         new ModernHook.Callback() {
           protected void beforeHookedMethod(ModernHook.Param p) {
+            queuedLens = null;
             if (pending != null) pending.cancel();
+            if (motion != null) motion.finish();
           }
         });
     rt.onChanged(
         () -> {
-          if (pending != null && !rt.enabled(ConfigProvider.ANIMATION)) pending.finish(false);
+          if (!rt.enabled(ConfigProvider.ANIMATION)) {
+            queuedLens = null;
+            if (pending != null) pending.finish(false);
+            if (motion != null) motion.finish();
+          }
         });
     rt.ready();
   }
 
   private boolean prepare(Object engine, int cameraId) throws Exception {
+    if (motion != null) {
+      queuedLens = cameraId;
+      return true;
+    }
     // Existing native facing / ratio / resolution animations keep their own callback.
     if (pending != null) {
       if (pending.engine == engine) {
@@ -138,7 +170,8 @@ final class ExpertRawHooks17 {
         (Rect) Reflect.call(Reflect.call(context, "getPreviewManager"), "getPreviewLayoutRect");
     if (rect == null || rect.isEmpty()) return false;
     rt.guard.arm();
-    Pending next = new Pending(engine, cameraId, context, layer);
+    int oldCameraId = (int) Reflect.call(settings, "getCameraId");
+    Pending next = new Pending(engine, cameraId, context, layer, oldCameraId);
     pending = next;
     Object callback =
         Proxy.newProxyInstance(
@@ -171,11 +204,13 @@ final class ExpertRawHooks17 {
 
   private final class Pending {
     final Object engine, context, layer;
+    final int oldCameraId;
     int cameraId;
     final AtomicBoolean done = new AtomicBoolean();
     final Runnable timeout = () -> finish(false);
 
-    Pending(Object e, int id, Object c, Object view) {
+    Pending(Object e, int id, Object c, Object view, int oldId) {
+      oldCameraId = oldId;
       engine = e;
       cameraId = id;
       context = c;
@@ -210,6 +245,38 @@ final class ExpertRawHooks17 {
         if (activity.isFinishing()
             || activity.isDestroyed()
             || !(boolean) Reflect.call(context, "isRunning")) return;
+        if (snapshot && rt.enabled(ConfigProvider.ANIMATION)) {
+          try {
+            motion =
+                new RawLensMotion17(
+                    rt,
+                    context,
+                    layer,
+                    oldCameraId,
+                    cameraId,
+                    () -> {
+                      motion = null;
+                      Integer nextLens = queuedLens;
+                      queuedLens = null;
+                      if (nextLens != null && rt.enabled(ConfigProvider.ANIMATION)) {
+                        rt.main.post(
+                            () -> {
+                              try {
+                                if (!prepare(engine, nextLens))
+                                  switchCamera.invoke(engine, nextLens);
+                              } catch (Throwable error) {
+                                rt.fail(error);
+                              }
+                            });
+                      }
+                    });
+            motion.start();
+          } catch (Exception unsupported) {
+            motion = null;
+            ModernHook.log(
+                "Expert RAW lens geometry unavailable; retaining native blur: " + unsupported);
+          }
+        }
         original.set(true);
         try {
           switchCamera.invoke(engine, cameraId);
@@ -221,6 +288,7 @@ final class ExpertRawHooks17 {
                 ? "EXPERT RAW: native preview transition"
                 : "EXPERT RAW: snapshot unavailable; native lens switch");
       } catch (Throwable e) {
+        if (motion != null) motion.finish();
         rt.fail(e);
       }
     }

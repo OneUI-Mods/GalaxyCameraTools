@@ -21,6 +21,8 @@ final class CameraHooks17 {
   private String stream = "";
   private long firstTimestamp, lastTimestamp, firstFrame;
   private int samples;
+  private long zoomUntil, zoomLastTimestamp, zoomIntervals, zoomTotalNanos, zoomSlowIntervals;
+  private Range<Integer> zoomRequest;
 
   CameraHooks17(HostRuntime runtime) {
     rt = runtime;
@@ -94,6 +96,7 @@ final class CameraHooks17 {
             if (!p.hasThrowable() && rt.guard.allowed()) measure((TotalCaptureResult) p.args[0]);
           }
         });
+    new PhotoZoomTiming17(rt, this).install();
     new VideoModes17(rt, this).install();
     new UltraWideLight17(rt).install();
     new FlashFocus17(rt, this).install();
@@ -196,10 +199,42 @@ final class CameraHooks17 {
     rt.report("PHOTO: requested 60 fps; " + stream);
   }
 
+  synchronized void beginZoomMeasurement() {
+    zoomUntil = SystemClock.uptimeMillis() + 1500;
+    zoomLastTimestamp = zoomIntervals = zoomTotalNanos = zoomSlowIntervals = 0;
+    zoomRequest = null;
+  }
+
+  private synchronized void measureZoom(TotalCaptureResult result, long timestamp) {
+    if (zoomUntil == 0) return;
+    if (SystemClock.uptimeMillis() >= zoomUntil) {
+      if (zoomIntervals > 0)
+        ModernHook.log(
+            String.format(
+                Locale.ROOT,
+                "Photo zoom sensor: %.1f fps; intervals=%d; over25ms=%d; requested=%s",
+                zoomIntervals * 1_000_000_000d / zoomTotalNanos,
+                zoomIntervals,
+                zoomSlowIntervals,
+                zoomRequest));
+      zoomUntil = 0;
+      return;
+    }
+    long interval = timestamp - zoomLastTimestamp;
+    if (zoomLastTimestamp > 0 && interval > 0 && interval < 100_000_000L) {
+      zoomIntervals++;
+      zoomTotalNanos += interval;
+      if (interval > 25_000_000L) zoomSlowIntervals++;
+    }
+    zoomLastTimestamp = timestamp;
+    zoomRequest = result.getRequest().get(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE);
+  }
+
   private void measure(TotalCaptureResult result) {
     if (mode() != 0) return;
     Long timestamp = result.get(CaptureResult.SENSOR_TIMESTAMP);
     if (timestamp == null) return;
+    measureZoom(result, timestamp);
     if (firstTimestamp == 0 || timestamp <= lastTimestamp) {
       firstTimestamp = timestamp;
       firstFrame = result.getFrameNumber();
