@@ -33,3 +33,7 @@ Expert RAWも同じ時間補正を使う。frameごとのcurve duration走査と
 ## 低負荷プレビュー
 
 vb.g.aでproducer bufferを選び、gd.i.pのPhoto deferred profileも同じ既存a2 enumへ合わせる。vb.g.aとvb.c.kのsetupのみをdeoptimizeする。logical 20のSurfaceTexture出力に存在し、同じ比率・短いframe durationを持つ最大1440px辺の候補を選ぶ。非対応時・前面・他モードではnativeのままにする。OFFは次回のカメラ初期化でnative profileへ戻る。
+
+## 0.1.3の写真表示
+
+写真FPSとmotionが両方ON、対応する背面preview、高温でない場合だけPhotoPreviewTransition17を使う。Cameraのpreview Surfaceを1回取得し、表示のscaleとfadeをframe timeで更新する。最終倍率は純正workerへ1回要求する。コピーの期限250ms、表示復元の期限2秒を持ち、Surface変更・OFF・clearでは元のscale/pivot/clip/frame-rateへ戻す。撮像が最終倍率に移った後のOFFで古い倍率を再送しない。その他の経路は上記0.1.2のrequest補間を使う。詳しくは[0.1.3の検証](../device-validation-0.1.3.md)を参照。

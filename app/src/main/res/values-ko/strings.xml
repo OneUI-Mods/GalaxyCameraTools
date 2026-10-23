@@ -45,7 +45,7 @@
   <string name="camera2_title">Camera2 추가 렌즈 표시</string>
   <string name="camera2_summary">Vector에서 선택한 일반 카메라 앱에 지원되는 추가 후면 카메라 ID를 표시합니다. 앱을 모듈 범위에 추가한 뒤 다시 시작하세요. 카메라 권한은 여전히 필요합니다. 지원되지 않는 해상도나 프레임 속도는 추가하지 않습니다. 앱에 렌즈 선택 기능이 없을 수도 있습니다.</string>
     <string name="lens_motion_title">렌즈 전환을 부드럽게</string>
-    <string name="lens_motion_summary">사진과 동영상의 렌즈 전환에 가감속을 적용합니다. 슈퍼 스테디와 수평 잠금을 지원하며 전환 시간을 조금 늘립니다.</string>
+    <string name="lens_motion_summary">사진과 동영상의 렌즈 전환에 가감속을 적용하며 슈퍼 스테디와 수평 잠금을 지원합니다. 사진 미리보기 60fps도 켜면 새 렌즈가 준비되는 동안 이전 화면을 60fps로 확대·축소합니다. 움직이는 피사체가 잠시 멈춰 보일 수 있습니다.</string>
 <string name="light_preview_title">사진 미리보기 부하 줄이기</string>
 <string name="light_preview_summary">지원되는 미리보기 해상도를 낮춰 렌더링 부하를 줄입니다. 카메라를 다시 열면 적용됩니다. 저장 사진과 동영상의 해상도는 유지됩니다.</string>
 <string name="lens_motion_section">렌즈 전환</string>

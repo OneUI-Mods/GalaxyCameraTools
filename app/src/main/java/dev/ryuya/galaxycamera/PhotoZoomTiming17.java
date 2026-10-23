@@ -22,7 +22,7 @@ final class PhotoZoomTiming17 {
   private Constructor<?> nativeStep;
   private Class<?> settingKey;
   private Object zoomKey;
-  private Motion motion;
+  private volatile Motion motion;
   private WeakReference<ValueAnimator> nativeAnimator = new WeakReference<>(null);
 
   PhotoZoomTiming17(HostRuntime runtime, CameraHooks17 camera) {
@@ -31,6 +31,12 @@ final class PhotoZoomTiming17 {
   }
 
   void install() throws Exception {
+    camera.onZoomResult(
+        result -> {
+          Motion active = motion;
+          PhotoPreviewTransition17 transition = active == null ? null : active.display;
+          if (transition != null) transition.observe(result);
+        });
     Class<?> zoomView =
         Class.forName(
             "com.sec.android.app.camera.layer.keyscreen.zoom.ZoomView", false, runtime.loader);
@@ -165,6 +171,10 @@ final class PhotoZoomTiming17 {
             if (motion != null) motion.returnToNative();
             ValueAnimator current = nativeAnimator.get();
             if (current != null && current.isRunning()) current.end();
+          } else if (!runtime.enabled(ConfigProvider.FPS)
+              && motion != null
+              && motion.display != null) {
+            motion.returnToNative();
           }
         });
   }
@@ -198,7 +208,9 @@ final class PhotoZoomTiming17 {
     // A 120 Hz panel must not double the requests sent to a 60 fps camera stream.
     static final long MIN_SAMPLE_INTERVAL_NANOS = 16_000_000L;
     int lastZoom = Integer.MIN_VALUE, frames;
-    boolean stopped;
+    volatile boolean stopped;
+    volatile PhotoPreviewTransition17 display;
+    volatile int appliedZoom = Integer.MIN_VALUE;
 
     Motion(Selection selection) throws ReflectiveOperationException {
       this.selection = selection;
@@ -221,7 +233,12 @@ final class PhotoZoomTiming17 {
       requests =
           new ZoomRequestQueue(
               nativeHandler::post,
-              value -> writeZoom.invoke(settings, value, zoomKey),
+              value -> {
+                if (value != appliedZoom) {
+                  writeZoom.invoke(settings, value, zoomKey);
+                  appliedZoom = value;
+                }
+              },
               () -> runtime.main.post(this::complete),
               error ->
                   runtime.main.post(
@@ -233,6 +250,40 @@ final class PhotoZoomTiming17 {
     }
 
     void start() {
+      if (selection.mode == 0
+          && runtime.enabled(ConfigProvider.FPS)
+          && camera.highRatePreviewActive()
+          && camera.rearCamera()) {
+        try {
+          display =
+              new PhotoPreviewTransition17(
+                  runtime,
+                  camera.previewSurface(),
+                  curve.get(0).zoom(),
+                  curve.get(curve.size() - 1).zoom(),
+                  () ->
+                      requests.submit(Math.round(curve.get(curve.size() - 1).zoom() * 1000), true));
+          display.capture(
+              () -> {
+                if (stopped) return;
+                requests.submit(Math.round(curve.get(curve.size() - 1).zoom() * 1000), false);
+                startFrames();
+              },
+              () -> {
+                if (stopped) return;
+                display = null;
+                startFrames();
+              });
+          return;
+        } catch (IllegalArgumentException | ReflectiveOperationException unavailable) {
+          display = null;
+          ModernHook.log("Photo display handoff: native fallback");
+        }
+      }
+      startFrames();
+    }
+
+    private void startFrames() {
       started = System.nanoTime();
       selection.view.setRequestedFrameRate(60f);
       Choreographer.getInstance().postFrameCallback(this);
@@ -242,7 +293,9 @@ final class PhotoZoomTiming17 {
               + "; steady="
               + selection.steady
               + "; duration="
-              + duration);
+              + duration
+              + "; startNanos="
+              + started);
     }
 
     @Override
@@ -254,7 +307,9 @@ final class PhotoZoomTiming17 {
           stop();
           return;
         }
-        if (!runtime.enabled(ConfigProvider.LENS_MOTION) || camera.mode() != selection.mode) {
+        if (!runtime.enabled(ConfigProvider.LENS_MOTION)
+            || camera.mode() != selection.mode
+            || (display != null && !camera.highRatePreviewActive())) {
           returnToNative();
           return;
         }
@@ -276,10 +331,11 @@ final class PhotoZoomTiming17 {
           updateLabel.invoke(selection.view, value);
           lastZoom = value;
           frames++;
-          requests.submit(value, elapsed >= duration);
-        } else if (elapsed >= duration) {
+          if (display == null) requests.submit(value, elapsed >= duration);
+        } else if (elapsed >= duration && display == null) {
           requests.submit(value, true);
         }
+        if (display != null) display.sample(value / 1000f, elapsed >= duration);
         if (elapsed < duration) {
           Choreographer.getInstance().postFrameCallback(this);
         }
@@ -309,11 +365,18 @@ final class PhotoZoomTiming17 {
 
     void returnToNative() {
       if (stopped) return;
+      boolean finalLensRequested = display != null && appliedZoom != Integer.MIN_VALUE;
       stop();
       try {
         if (generationField.getInt(selection.view) != selection.generation
             || !runningField.getBoolean(selection.view)) return;
-        int elapsed = (int) Math.max(0, (System.nanoTime() - started) / 1_000_000);
+        if (finalLensRequested) {
+          // The camera already uses the target lens. Do not replay earlier zoom requests on OFF.
+          ((Runnable) Reflect.get(selection.view, "S")).run();
+          return;
+        }
+        int elapsed =
+            started == 0 ? 0 : (int) Math.max(0, (System.nanoTime() - started) / 1_000_000);
         int index =
             ZoomCurve.nextIndex(
                 curve, LensMotionTiming.curveTime(elapsed, duration, nativeDuration));
@@ -329,6 +392,7 @@ final class PhotoZoomTiming17 {
 
     void stop() {
       stopped = true;
+      if (display != null) display.close();
       requests.cancel();
       Choreographer.getInstance().removeFrameCallback(this);
       selection.view.setRequestedFrameRate(previousFrameRate);

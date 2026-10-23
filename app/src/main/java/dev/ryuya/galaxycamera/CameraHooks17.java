@@ -27,12 +27,13 @@ final class CameraHooks17 {
   private volatile int thermalStatus;
   private long nextStatisticsRead;
   private volatile java.util.function.BiConsumer<Object, TotalCaptureResult> focusSamples;
+  private volatile java.util.function.Consumer<TotalCaptureResult> zoomSamples;
   private final Map<String, Boolean> physicalFpsSupport =
       new java.util.concurrent.ConcurrentHashMap<>();
   private String reportedCameraId;
   private Size reportedPreviewSize;
-  private int reportedHeat = -1;
-  private boolean reportedHighRate;
+  private volatile int reportedHeat = -1;
+  private volatile boolean reportedHighRate;
   private final Map<String, CameraCharacteristics> capabilities =
       new java.util.concurrent.ConcurrentHashMap<>();
   private Class<?> settingsKey;
@@ -142,6 +143,8 @@ final class CameraHooks17 {
             TotalCaptureResult result = (TotalCaptureResult) chain.getArgs().get(0);
             measure(result);
             if (focusSamples != null) focusSamples.accept(chain.getThisObject(), result);
+            var zoom = zoomSamples;
+            if (zoom != null) zoom.accept(result);
           }
           return value;
         });
@@ -156,6 +159,20 @@ final class CameraHooks17 {
 
   void onPreviewResult(java.util.function.BiConsumer<Object, TotalCaptureResult> listener) {
     focusSamples = listener;
+  }
+
+  void onZoomResult(java.util.function.Consumer<TotalCaptureResult> listener) {
+    zoomSamples = listener;
+  }
+
+  boolean highRatePreviewActive() {
+    return thermalStatus < 3 && reportedHeat == 0 && reportedHighRate;
+  }
+
+  android.view.SurfaceView previewSurface() throws ReflectiveOperationException {
+    Activity current = activity.get();
+    if (current == null) return null;
+    return (android.view.SurfaceView) Reflect.get(Reflect.get(Reflect.get(current, "f"), "g"), "d");
   }
 
   boolean rearCamera() {

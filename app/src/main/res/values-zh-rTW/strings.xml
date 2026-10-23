@@ -45,7 +45,7 @@
   <string name="camera2_title">顯示Camera2附加鏡頭</string>
   <string name="camera2_summary">向Vector中選定的一般相機應用顯示支援的附加後置相機ID。將相機應用加入模組範圍後重新啟動。仍需相機權限。不會增加不支援的解析度或影格率。應用程式本身可能不提供鏡頭選擇。</string>
     <string name="lens_motion_title">平滑切換鏡頭</string>
-    <string name="lens_motion_summary">為照片和影片的鏡頭切換加入緩動，包括超級防手震和水平鎖定。稍微延長切換時間，讓加減速更明顯。</string>
+    <string name="lens_motion_summary">為照片和影片的鏡頭切換加入緩動，支援超級防手震和水平鎖定。同時開啟照片預覽60fps時，在新鏡頭畫面準備期間以60fps縮放上一幀。移動的主體可能短暫停止。</string>
 <string name="light_preview_title">降低照片預覽負載</string>
 <string name="light_preview_summary">使用較低的受支援預覽解析度以降低繪製負載。重新開啟相機後生效。保留照片和影片的儲存解析度。</string>
 <string name="lens_motion_section">鏡頭切換</string>
