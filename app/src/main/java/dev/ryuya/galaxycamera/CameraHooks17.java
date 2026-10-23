@@ -119,7 +119,7 @@ final class CameraHooks17 {
             Class.forName("com.samsung.android.camera.core2.CamDevice", false, l),
             Class.forName(
                 "com.samsung.android.camera.core2.container.DeviceConfiguration", false, l),
-            Class.forName("com.samsung.android.camera.core2.MakerStateCallback", false, l),
+            Class.forName("com.samsung.android.camera.core2.callback.MakerStateCallback", false, l),
             Handler.class));
     ModernHook.findAndHookMethod(
         photoMaker,
