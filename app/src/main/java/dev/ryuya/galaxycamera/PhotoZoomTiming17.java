@@ -67,6 +67,9 @@ final class PhotoZoomTiming17 {
               Motion next = new Motion(selection);
               ((Handler) Reflect.get(selection.view, "I")).removeCallbacks(selection.runner);
               runtime.guard.arm();
+              selection.generation++;
+              Reflect.field(selection.view.getClass(), "l")
+                  .setInt(selection.view, (int) selection.generation);
               motion = next;
               next.start();
             } catch (ReflectiveOperationException | IllegalArgumentException error) {
@@ -136,7 +139,7 @@ final class PhotoZoomTiming17 {
     public void doFrame(long frameTimeNanos) {
       if (stopped) return;
       try {
-        if ((long) Reflect.get(selection.view, "l") != selection.generation
+        if (((Number) Reflect.get(selection.view, "l")).longValue() != selection.generation
             || !(boolean) Reflect.get(selection.view, "p")) {
           stop();
           return;
@@ -173,7 +176,7 @@ final class PhotoZoomTiming17 {
       if (stopped) return;
       stop();
       try {
-        if ((long) Reflect.get(selection.view, "l") != selection.generation
+        if (((Number) Reflect.get(selection.view, "l")).longValue() != selection.generation
             || !(boolean) Reflect.get(selection.view, "p")) return;
         int elapsed = (int) Math.max(0, (System.nanoTime() - started) / 1_000_000);
         int index = ZoomCurve.nextIndex(curve, elapsed);
