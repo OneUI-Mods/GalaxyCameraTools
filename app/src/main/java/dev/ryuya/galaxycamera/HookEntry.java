@@ -11,10 +11,12 @@ public final class HookEntry extends XposedModule {
   public void onModuleLoaded(ModuleLoadedParam p) {
     ModernHook.attach(this);
     process = p.getProcessName();
+    ModernHook.log("Module loaded: " + process);
   }
 
   public void onPackageReady(PackageReadyParam p) {
     String name = p.getPackageName();
+    ModernHook.log("Package ready: " + name + "; first=" + p.isFirstPackage());
     if (!p.isFirstPackage() || !name.equals(process) || !ConfigProvider.HOSTS.contains(name))
       return;
     ModernHook.findAndHookMethod(
