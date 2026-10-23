@@ -114,6 +114,7 @@ final class PhotoZoomTiming17 {
                     + animator.getDuration());
           }
         });
+    ModernHook.deoptimize(Reflect.method(zoomView, "H2", int.class, int.class));
     ModernHook.aroundMethod(
         Reflect.method(zoomView, "H2", int.class, int.class),
         chain -> {

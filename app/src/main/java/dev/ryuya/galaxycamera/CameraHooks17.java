@@ -15,6 +15,8 @@ final class CameraHooks17 {
   private final HostRuntime rt;
   private volatile WeakReference<Activity> activity = new WeakReference<>(null);
   private static final Range<Integer> PREVIEW_60 = new Range<>(60, 60);
+  private static final CaptureRequest.Key<Float> ZOOM_JUMP_TARGET =
+      new CaptureRequest.Key<>("samsung.android.control.zoomJumpTargetRatio", Float.class);
   private final Map<String, Map<Size, Boolean>> previewSupport =
       new java.util.concurrent.ConcurrentHashMap<>();
   private volatile int thermalStatus;
@@ -212,6 +214,8 @@ final class CameraHooks17 {
       rt.guard.arm();
       for (Map.Entry<?, ?> item : builders.entrySet()) {
         if (!(item.getValue() instanceof CaptureRequest.Builder builder)) continue;
+        Float jumpTarget = builder.get(ZOOM_JUMP_TARGET);
+        if (jumpTarget != null && jumpTarget > 0f) builder.set(ZOOM_JUMP_TARGET, 0f);
         if (!PREVIEW_60.equals(builder.get(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE)))
           builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, PREVIEW_60);
         if (physicalKeys != null
