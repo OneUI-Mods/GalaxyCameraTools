@@ -18,12 +18,12 @@
   <string name="video_section">Normal video</string>
   <string name="raw_section">Lens switching</string>
   <string name="photo_title">60 fps photo preview</string>
-  <string name="photo_summary">Requests 60 fps in normal Photo mode when the current preview stream supports it. Saved photos keep the original capture settings. Heat or an unsupported stream uses the camera defaults.</string>
+  <string name="photo_summary">Requests 60 fps for supported normal Photo streams and eases lens zoom in sync with display frames. Saved photos retain their capture settings. Heat and unsupported streams keep camera defaults.</string>
   <string name="video_title">120 fps in normal Video mode</string>
   <string name="video_summary">Adds Samsung-supported 120 fps recording choices to normal Video mode. Pro Video remains unchanged.</string>
   <string name="video_limits">120 fps is limited to resolutions and lenses supported by the camera pipeline. This build targets rear FHD and UHD. 8K, HD, front cameras and special aspect ratios are not added without a supported recording path.</string>
   <string name="raw_title">Smooth lens switching</string>
-  <string name="raw_summary">Uses Expert RAW’s native preview snapshot, blur and fade when changing lenses. If no snapshot arrives, the lens switch continues without waiting indefinitely.</string>
+  <string name="raw_summary">Animates lens field of view and hands off to the new live preview. Open Samsung Camera once after updating to use its zoom curves and timing. An unavailable preview falls back to normal switching.</string>
   <string name="raw_hint">Applies to lens changes. Existing front/rear and resolution animations keep their native behavior.</string>
   <string name="apply_hint">Camera Assistant and this app share the same switches. After changing Camera settings, force stop Camera and open it again to refresh its recording choices. Finish any recording or capture first.</string>
   <string name="setup_title">Module setup</string>

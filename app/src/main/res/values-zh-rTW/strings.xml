@@ -18,12 +18,12 @@
   <string name="video_section">一般錄影</string>
   <string name="raw_section">切換鏡頭</string>
   <string name="photo_title">照片預覽使用60fps</string>
-  <string name="photo_summary">在一般照片模式下，目前預覽串流支援時要求60fps。保留照片原有的拍攝設定。過熱或不支援的尺寸使用相機預設設定。</string>
+  <string name="photo_summary">為支援的一般照片預覽要求60fps，並按螢幕影格同步鏡頭縮放緩動。保留照片拍攝設定；過熱或不支援的預覽使用相機預設設定。</string>
   <string name="video_title">為一般錄影加入120fps</string>
   <string name="video_summary">將Samsung支援的120fps錄影選項加入一般錄影模式，保留專業錄影的設定。</string>
   <string name="video_limits">120fps僅限相機支援的解析度與鏡頭。此版本以後置FHD及UHD為對象。在確認支援的錄影流程前，不加入8K、HD、前置及特殊畫面比例。</string>
   <string name="raw_title">平滑切換鏡頭</string>
-  <string name="raw_summary">使用Expert RAW原有的預覽快照、模糊及淡入淡出。若快照未傳回，會繼續一般切換，避免一直等待。</string>
+  <string name="raw_summary">縮放視角並平滑銜接新鏡頭的即時預覽。更新後先開啟一次三星相機，即可使用其縮放曲線與時長。無法取得預覽時恢復一般切換。</string>
   <string name="raw_hint">適用於鏡頭更換。保留前後鏡頭及解析度切換已有的動畫。</string>
   <string name="apply_hint">Camera Assistant與本應用程式的開關同步。變更相機設定後，請結束拍攝，強制停止相機並重新開啟，以更新錄影選項。</string>
   <string name="setup_title">模組設定</string>

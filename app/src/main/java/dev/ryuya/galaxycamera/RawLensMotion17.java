@@ -61,6 +61,21 @@ final class RawLensMotion17 {
   }
 
   void start() {
+    try {
+      Reflect.call(layer, "cancelAllAnimator");
+      Class<?> type =
+          Class.forName(
+              "com.samsung.android.app.galaxyraw.interfaces.PreviewAnimationLayerManager$PreviewAnimationType",
+              false,
+              runtime.loader);
+      Reflect.field(layer.getClass(), "mCurrentAnimationType")
+          .set(layer, Reflect.value(type, "PREVIEW_CHANGE"));
+      Reflect.field(layer.getClass(), "mSnapShotTaken").setBoolean(layer, true);
+    } catch (ReflectiveOperationException error) {
+      runtime.fail(error);
+      finish();
+      return;
+    }
     blur.setAlpha(1f);
     blur.setVisibility(ratio < 1f ? View.VISIBLE : View.GONE);
     snapshot.setVisibility(View.VISIBLE);

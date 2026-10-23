@@ -12,8 +12,12 @@ nativeのl9.a2解像度enum、e5 feature map、te.c0通常動画候補、d8.rの
 
 ## Expert RAW
 
-6.0.02.8のCommonEngine.switchCameraを、既存PREVIEW_CHANGE snapshot callbackの後へ受け渡す。前後・比率などの純正アニメーションが既にある場合は二重に要求しない。最大600msのsnapshot待ちと例外時のfallbackを設け、撮影中・背景化・破棄は待ちを取り消す。連続選択は最後のレンズへまとめる。UIの独自コピーや追加Surfaceを作らない。
+6.0.02.8のCommonEngine.switchCameraを、既存PREVIEW_CHANGE snapshot callbackの後へ受け渡す。前後・比率などの純正アニメーションが既にある場合は二重に要求しない。最大600msのsnapshot待ちと例外時のfallbackを設け、撮影中・背景化・破棄は待ちを取り消す。連続選択は最後のレンズへまとめる。UIの独自コピーや追加Surfaceを作らない。レンズの画角変化では既存snapshot viewとpreview SurfaceViewの表示変形を使う。終了・中止時にscale/pivot/clip/frame-rate要求を復元する。Cameraから受け取るのは検証済みの数値zoom curveのみで、同じfirmwareのキャッシュだけを読み出す。
 
 ## Camera Assistant
 
 5.0.00.7のa1 SettingsFragmentへnative CameraSwitchPreferenceを挿入する。SamsungのテーマとPreferenceScreenを使用し、純正の設定値には保存しない。module providerはホストのcaller packageとUIDを照合し、変更を許可するのはmodule UIとAssistantだけ。
+
+## 写真のズーム描画
+
+ZoomView.H2が選んだnative curve runnerを同じdurationのframe-time samplingへ受け渡す。元の曲線を時間で補間し、フレームを落とした場合に古い設定更新を再生しない。世代番号とnative running stateを照合し、OFF時はnative runnerの残り区間へ復帰する。ズーム移行中のpreview-only transient bitと、session初期パラメーターも60fps対応を照合する。still/record builderと他のaction bitは変更しない。

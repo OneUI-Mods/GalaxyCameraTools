@@ -18,12 +18,12 @@
   <string name="video_section">일반 동영상</string>
   <string name="raw_section">렌즈 전환</string>
   <string name="photo_title">사진 미리보기 60fps</string>
-  <string name="photo_summary">일반 사진 모드에서 현재 미리보기 스트림이 지원하면 60fps를 요청합니다. 저장하는 사진의 촬영 설정은 유지합니다. 과열되거나 지원하지 않는 크기는 기본 설정을 사용합니다.</string>
+  <string name="photo_summary">지원되는 일반 사진 미리보기에 60fps를 요청하고 화면 프레임에 맞춰 렌즈 줌을 부드럽게 연결합니다. 저장 사진의 촬영 설정은 유지합니다. 과열 및 미지원 스트림은 기본 설정을 사용합니다.</string>
   <string name="video_title">일반 동영상에 120fps 추가</string>
   <string name="video_summary">Samsung이 지원하는 120fps 녹화 옵션을 일반 동영상 모드에 추가합니다. 프로 동영상 설정은 유지합니다.</string>
   <string name="video_limits">120fps는 카메라가 지원하는 해상도와 렌즈에서만 사용할 수 있습니다. 이 버전은 후면 FHD와 UHD를 대상으로 합니다. 8K, HD, 전면 및 특수 화면 비율은 지원하는 녹화 경로를 확인하기 전까지 추가하지 않습니다.</string>
   <string name="raw_title">부드러운 렌즈 전환</string>
-  <string name="raw_summary">Expert RAW의 기본 미리보기 스냅샷, 흐림 및 페이드를 사용합니다. 스냅샷이 도착하지 않으면 기다리지 않고 기본 렌즈 전환을 진행합니다.</string>
+  <string name="raw_summary">화각을 확대·축소하면서 새 렌즈의 실시간 미리보기로 연결합니다. 업데이트 후 삼성 카메라를 한 번 열면 기본 줌 곡선과 시간을 사용합니다. 미리보기를 얻지 못하면 일반 전환으로 돌아갑니다.</string>
   <string name="raw_hint">렌즈 변경에 적용합니다. 전면/후면 및 해상도 변경의 기존 애니메이션은 유지합니다.</string>
   <string name="apply_hint">Camera Assistant와 이 앱의 스위치는 동기화됩니다. 카메라 설정을 변경한 후 촬영을 종료하고 카메라를 강제 종료한 뒤 다시 열어 녹화 옵션을 새로 고치세요.</string>
   <string name="setup_title">모듈 설정</string>

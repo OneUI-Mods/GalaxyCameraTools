@@ -179,13 +179,11 @@ final class ExpertRawHooks17 {
     if (activity.isFinishing() || activity.isDestroyed()) return false;
     Object layer =
         Reflect.call(Reflect.call(context, "getLayerManager"), "getPreviewAnimationLayerManager");
-    if (!"NONE".equals(String.valueOf(Reflect.call(layer, "getCurrentAnimationType")))) {
-      rt.report("EXPERT RAW: existing animation " + Reflect.call(layer, "getCurrentAnimationType"));
-      ModernHook.log(
-          "Expert RAW native animation already active: "
-              + Reflect.call(layer, "getCurrentAnimationType"));
-      return false;
-    }
+    String currentAnimation = String.valueOf(Reflect.call(layer, "getCurrentAnimationType"));
+    boolean adoptSnapshot =
+        "PREVIEW_CHANGE".equals(currentAnimation)
+            && Reflect.get(layer, "mPreviewEventListener") == null;
+    if (!"NONE".equals(currentAnimation) && !adoptSnapshot) return false;
     Object settings = Reflect.call(context, "getCameraSettings");
     if ((int) Reflect.call(settings, "getCameraId") == cameraId) {
       rt.report("EXPERT RAW: settings already reference requested lens");
@@ -211,7 +209,13 @@ final class ExpertRawHooks17 {
             });
     try {
       rt.main.postDelayed(next.timeout, 600);
-      request.invoke(layer, previewChange, callback, new Rect(rect));
+      if (adoptSnapshot) {
+        Reflect.field(layer.getClass(), "mPreviewEventListener").set(layer, callback);
+        if ((boolean) Reflect.get(layer, "mSnapShotTaken")) rt.main.post(() -> next.finish(true));
+        ModernHook.log("Expert RAW: adopted native lens snapshot");
+      } else {
+        request.invoke(layer, previewChange, callback, new Rect(rect));
+      }
       rt.report("EXPERT RAW: waiting for preview snapshot");
       return true;
     } catch (Throwable error) {

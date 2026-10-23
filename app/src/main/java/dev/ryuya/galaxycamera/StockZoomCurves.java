@@ -69,8 +69,8 @@ final class StockZoomCurves {
   private static float lensZoom(int cameraId) {
     return switch (cameraId) {
       case 0, 102 -> 1f;
-      case 100 -> .6f;
-      case 101 -> 3f;
+      case 100 -> 3f;
+      case 101 -> .6f;
       case 104 -> 5f;
       default -> -1f;
     };

@@ -15,6 +15,8 @@ final class CameraHooks17 {
   private final HostRuntime rt;
   private volatile WeakReference<Activity> activity = new WeakReference<>(null);
   private final ThreadLocal<Object> owner = new ThreadLocal<>();
+  private WeakReference<Object> previewMaker = new WeakReference<>(null);
+  private final Map<CaptureRequest.Builder, Integer> zoomCaptureIntents = new IdentityHashMap<>();
   private final Map<String, CameraCharacteristics> capabilities =
       new java.util.concurrent.ConcurrentHashMap<>();
   private Class<?> settingsKey;
@@ -126,6 +128,7 @@ final class CameraHooks17 {
                 if (preview == null) return;
                 Size size = (Size) Reflect.get(preview, "c");
                 if (!supportsPreview60(id, size)) return;
+                previewMaker = new WeakReference<>(maker);
                 eligiblePreviewSizes.put(id, size);
               }
               Object config = Reflect.get(p.args[0], "k");
@@ -280,11 +283,40 @@ final class CameraHooks17 {
               + thermal);
       return;
     }
+    previewMaker = new WeakReference<>(maker);
     eligiblePreviewSizes.put(id, size);
     rt.guard.arm();
     p.args[3] = new Range<>(60, 60);
     stream = "id=" + id + "; preview=" + size;
     rt.report("PHOTO: requested 60 fps; " + stream);
+  }
+
+  void beginPreviewZoom() {
+    endPreviewZoom();
+    Object maker = previewMaker.get();
+    if (maker == null || !rt.enabled(ConfigProvider.FPS) || mode() != 0) return;
+    try {
+      Map<?, ?> builders = (Map<?, ?>) Reflect.get(maker, "mPreviewRequestBuilderMap");
+      for (Object value : builders.values()) {
+        if (value instanceof CaptureRequest.Builder builder) {
+          zoomCaptureIntents.put(builder, builder.get(CaptureRequest.CONTROL_CAPTURE_INTENT));
+          builder.set(
+              CaptureRequest.CONTROL_CAPTURE_INTENT,
+              CaptureRequest.CONTROL_CAPTURE_INTENT_VIDEO_RECORD);
+        }
+      }
+      ModernHook.log("Photo zoom: preview intent enabled; builders=" + zoomCaptureIntents.size());
+    } catch (ReflectiveOperationException | IllegalArgumentException error) {
+      endPreviewZoom();
+      rt.fail(error);
+    }
+  }
+
+  void endPreviewZoom() {
+    for (Map.Entry<CaptureRequest.Builder, Integer> item : zoomCaptureIntents.entrySet()) {
+      item.getKey().set(CaptureRequest.CONTROL_CAPTURE_INTENT, item.getValue());
+    }
+    zoomCaptureIntents.clear();
   }
 
   synchronized void beginZoomMeasurement() {
