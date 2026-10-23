@@ -119,6 +119,28 @@ final class CameraHooks17 {
             .invoke(settings, Reflect.value(settingsKey, "BACK_CAMCORDER_RESOLUTION"));
   }
 
+  void restoreNormalVideoSelection(Class<?> resolution) throws ReflectiveOperationException {
+    if (!rt.available() || rt.configured(ConfigProvider.VIDEO) || !rt.guard.allowed()) return;
+    Activity a = activity.get();
+    if (a == null) return;
+    Object engine = Reflect.get(a, "n");
+    if (engine == null || !"IDLE".equals(String.valueOf(Reflect.get(engine, "C")))) return;
+    Object selected =
+        Reflect.method(resolution, "j", int.class).invoke(null, backVideoResolution());
+    String name = selected.toString();
+    if (!Set.of("RESOLUTION_1920X1080_120FPS", "RESOLUTION_3840X2160_120FPS").contains(name))
+      return;
+    Object fallback = Reflect.value(resolution, name.replace("_120FPS", ""));
+    Object settings = Reflect.get(a, "j");
+    rt.guard.arm();
+    Reflect.method(settings.getClass(), "V", int.class, settingsKey)
+        .invoke(
+            settings,
+            Reflect.call(fallback, "e"),
+            Reflect.value(settingsKey, "BACK_CAMCORDER_RESOLUTION"));
+    rt.report("VIDEO: disabled; restored native 30 fps selection");
+  }
+
   private void previewRequest(ModernHook.Param p, Object maker) throws Exception {
     if (p.args[0] != Reflect.get(maker, "mPreviewRequestBuilderMap")) return;
     int type = (int) Reflect.call(maker, "getMakerType");

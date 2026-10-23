@@ -84,6 +84,10 @@ final class HostRuntime {
     return available && !failed && guard.allowed() && options.getBoolean(key, false);
   }
 
+  boolean configured(String key) {
+    return available && options.getBoolean(key, false);
+  }
+
   void onChanged(Runnable listener) {
     changed.add(listener);
   }

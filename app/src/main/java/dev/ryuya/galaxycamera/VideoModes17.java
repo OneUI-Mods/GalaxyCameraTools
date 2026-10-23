@@ -25,6 +25,19 @@ final class VideoModes17 {
     uhd = Reflect.value(resolution, "RESOLUTION_3840X2160_120FPS");
     uhdCommand = Reflect.value(commands, "BACK_PRO_CAMCORDER_RESOLUTION_UHD_120");
     backSetting = Reflect.value(setting, "BACK_CAMCORDER_RESOLUTION");
+    ModernHook.findAndHookMethod(
+        Class.forName("com.sec.android.app.camera.Camera", false, l),
+        "onResume",
+        new ModernHook.Callback() {
+          protected void afterHookedMethod(ModernHook.Param p) {
+            if (p.hasThrowable()) return;
+            try {
+              camera.restoreNormalVideoSelection(resolution);
+            } catch (Throwable error) {
+              rt.fail(error);
+            }
+          }
+        });
     Class<?> videoMaker =
         Class.forName("com.samsung.android.camera.core2.maker.VideoMaker", false, l);
     Class<?> highRateMaker =
