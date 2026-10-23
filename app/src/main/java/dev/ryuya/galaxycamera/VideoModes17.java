@@ -7,7 +7,7 @@ import java.util.*;
 final class VideoModes17 {
   private final HostRuntime rt;
   private final CameraHooks17 camera;
-  private Class<?> resolution, commands, setting, features, featureKey;
+  private Class<?> resolution, commands, setting, features;
   private Object uhd, uhdCommand, backSetting;
 
   VideoModes17(HostRuntime runtime, CameraHooks17 hooks) {
@@ -21,7 +21,6 @@ final class VideoModes17 {
     commands = Class.forName("l9.j0", false, l);
     setting = Class.forName("l9.f0", false, l);
     features = Class.forName("te.f0", false, l);
-    featureKey = Class.forName("e5.l", false, l);
     Class<?> util = Class.forName("te.c0", false, l), commandMap = Class.forName("d8.r", false, l);
     uhd = Reflect.value(resolution, "RESOLUTION_3840X2160_120FPS");
     uhdCommand = Reflect.value(commands, "BACK_PRO_CAMCORDER_RESOLUTION_UHD_120");
@@ -38,7 +37,10 @@ final class VideoModes17 {
                   || !rt.enabled(ConfigProvider.VIDEO)
                   || !"video".equals(p.args[0])) return;
               try {
-                if (supported(p.args[1])) p.setResult(true);
+                if (supported(p.args[1])) {
+                  rt.guard.arm();
+                  p.setResult(true);
+                }
               } catch (Throwable e) {
                 rt.fail(e);
               }
@@ -146,7 +148,10 @@ final class VideoModes17 {
   }
 
   private boolean supported(Object value) throws Exception {
-    if (!value.toString().endsWith("_120FPS")) return false;
+    // These two choices have complete normal-mode command mappings. Other
+    // native Pro aspect ratios must not enter the normal menu without one.
+    if (!Set.of("RESOLUTION_3840X2160_120FPS", "RESOLUTION_1920X1080_120FPS")
+        .contains(value.toString())) return false;
     Object raw = Reflect.method(features, "c", resolution).invoke(null, value);
     if (!(raw instanceof Map<?, ?> map) || !Boolean.parseBoolean(String.valueOf(map.get("value"))))
       return false;

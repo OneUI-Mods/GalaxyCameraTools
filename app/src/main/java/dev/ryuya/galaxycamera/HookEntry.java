@@ -27,10 +27,12 @@ public final class HookEntry extends XposedModule {
           protected void afterHookedMethod(ModernHook.Param call) {
             if (attached || call.hasThrowable()) return;
             Context c = (Context) call.args[0];
+            HostRuntime runtime = null;
             if (!name.equals(c.getPackageName())) return;
             attached = true;
             try {
               HostRuntime rt = new HostRuntime(c, p.getClassLoader());
+              runtime = rt;
               if (Build.VERSION.SDK_INT != 37
                   || !"SM-S948Q".equals(Build.MODEL)
                   || !"CP2A.260605.016.S948QOPU1BZI9".equals(Build.DISPLAY)) {
@@ -50,7 +52,8 @@ public final class HookEntry extends XposedModule {
                 new ExpertRawHooks17(rt).install();
               else rt.report("UNSUPPORTED: application version " + version);
             } catch (Throwable e) {
-              ModernHook.log("Host feature unavailable: " + e);
+              if (runtime != null) runtime.fail(e);
+              else ModernHook.log("Host feature unavailable: " + e);
             }
           }
         });

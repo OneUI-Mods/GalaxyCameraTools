@@ -60,6 +60,7 @@ final class AssistantUi17 {
     if ((int) Reflect.call(screen, "getPreferenceCount") == 0) return;
     Context host = (Context) Reflect.call(fragment, "requireContext");
     Context strings = host.createPackageContext(BuildConfig.APPLICATION_ID, 0);
+    rt.guard.arm();
     Object group = category.getConstructor(Context.class).newInstance(host);
     call(group, "setKey", String.class, "galaxycamera.category");
     call(group, "setTitle", CharSequence.class, strings.getText(R.string.app_name));
