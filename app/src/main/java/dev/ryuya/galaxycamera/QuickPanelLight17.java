@@ -11,6 +11,7 @@ final class QuickPanelLight17 {
   private volatile boolean cameraTorchEnabled;
   private WeakReference<Object> controller = new WeakReference<>(null);
   private final ThreadLocal<Boolean> tileClick = new ThreadLocal<>();
+  private final ThreadLocal<Boolean> requestedTileState = new ThreadLocal<>();
   private final Runnable refreshLease = this::readCameraState;
 
   QuickPanelLight17(HostRuntime runtime) {
@@ -60,10 +61,16 @@ final class QuickPanelLight17 {
         Reflect.method(tile, "handleClick", expandable),
         chain -> {
           tileClick.set(true);
+          if (relayEnabled()) {
+            requestedTileState.set(!cameraTorchEnabled);
+            Object state = Reflect.get(chain.getThisObject(), "mState");
+            Reflect.field(state.getClass(), "value").setBoolean(state, cameraTorchEnabled);
+          }
           try {
             return chain.proceed();
           } finally {
             tileClick.remove();
+            requestedTileState.remove();
           }
         });
     ModernHook.findAndHookMethod(
@@ -72,7 +79,10 @@ final class QuickPanelLight17 {
         boolean.class,
         new ModernHook.Callback() {
           protected void beforeHookedMethod(ModernHook.Param call) {
-            boolean enable = (boolean) call.args[0];
+            boolean enable =
+                requestedTileState.get() != null
+                    ? requestedTileState.get()
+                    : (boolean) call.args[0];
             if (!relayEnabled() || (enable && !Boolean.TRUE.equals(tileClick.get()))) return;
             try {
               Object samsung = Reflect.get(call.thisObject, "mSecFlashlightController");
@@ -140,6 +150,11 @@ final class QuickPanelLight17 {
               .context
               .getContentResolver()
               .call(ConfigProvider.URI, "light_request", null, input);
+      ModernHook.log(
+          "Camera light request="
+              + enable
+              + "; accepted="
+              + (result != null && result.getBoolean("accepted")));
       if (result == null || !result.getBoolean("accepted")) readCameraState();
     } catch (RuntimeException error) {
       cameraAvailable = false;
@@ -160,7 +175,11 @@ final class QuickPanelLight17 {
       cameraAvailable = false;
       cameraTorchEnabled = false;
     }
-    if (previousAvailable != cameraAvailable || previousEnabled != cameraTorchEnabled) notifyTile();
+    if (previousAvailable != cameraAvailable || previousEnabled != cameraTorchEnabled) {
+      ModernHook.log(
+          "Camera light state available=" + cameraAvailable + "; enabled=" + cameraTorchEnabled);
+      notifyTile();
+    }
     if (cameraAvailable) runtime.worker.postDelayed(refreshLease, 1000);
   }
 

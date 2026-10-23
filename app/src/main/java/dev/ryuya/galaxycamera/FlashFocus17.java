@@ -14,14 +14,25 @@ final class FlashFocus17 {
   private volatile FocusSample sample;
   private volatile FocusHold hold;
   private Method setPublicSetting, applySettings;
+  private CaptureRequest.Key<Integer> nativeLensPosition;
+  private final CaptureResult.Key<Integer> nativeLensPositionResult =
+      new CaptureResult.Key<>("samsung.android.lens.focusLensPos", Integer.class);
+  private volatile int minimumHeldPosition, maximumHeldPosition;
   private volatile float minimumHeldDistance, maximumHeldDistance;
   private volatile int heldResultCount;
   private final Runnable timeout = () -> release("timeout");
 
-  private record FocusSample(WeakReference<Object> maker, float distance, long sampledAtMillis) {}
+  private record FocusSample(
+      WeakReference<Object> maker, float distance, int lensPosition, long sampledAtMillis) {}
 
   private record FocusHold(
-      Object maker, Object engine, Object previousAfMode, Object distance, float lockedDistance) {}
+      Object maker,
+      Object engine,
+      Object previousAfMode,
+      Object distance,
+      Object previousLensPosition,
+      float lockedDistance,
+      int lockedLensPosition) {}
 
   FlashFocus17(HostRuntime runtime, CameraHooks17 hooks) {
     this.runtime = runtime;
@@ -38,6 +49,14 @@ final class FlashFocus17 {
     setPublicSetting =
         Reflect.method(makerClass, "setPublicSetting", CaptureRequest.Key.class, Object.class);
     applySettings = Reflect.method(makerClass, "applySettings");
+    nativeLensPosition =
+        (CaptureRequest.Key<Integer>)
+            Reflect.get(
+                Class.forName(
+                    "com.samsung.android.camera.core2.local.vendorkey.SemCaptureRequest",
+                    false,
+                    loader),
+                "E0");
     ModernHook.hookMethod(
         setPublicSetting,
         new ModernHook.Callback() {
@@ -48,6 +67,8 @@ final class FlashFocus17 {
               call.args[1] = CaptureRequest.CONTROL_AF_MODE_OFF;
             else if (CaptureRequest.LENS_FOCUS_DISTANCE.equals(call.args[0]))
               call.args[1] = current.lockedDistance;
+            else if (nativeLensPosition.equals(call.args[0]))
+              call.args[1] = current.lockedLensPosition;
           }
         });
     Class<?> previewCallbackClass =
@@ -62,6 +83,13 @@ final class FlashFocus17 {
           protected void afterHookedMethod(ModernHook.Param call) {
             if (call.hasThrowable() || !runtime.enabled(ConfigProvider.FOCUS)) return;
             if (hold != null) {
+              Integer mode = ((TotalCaptureResult) call.args[0]).get(CaptureResult.CONTROL_AF_MODE);
+              if (mode == null || mode != CaptureResult.CONTROL_AF_MODE_OFF) return;
+              Integer position = ((TotalCaptureResult) call.args[0]).get(nativeLensPositionResult);
+              if (position != null) {
+                minimumHeldPosition = Math.min(minimumHeldPosition, position);
+                maximumHeldPosition = Math.max(maximumHeldPosition, position);
+              }
               Float measuredDistance =
                   ((TotalCaptureResult) call.args[0]).get(CaptureResult.LENS_FOCUS_DISTANCE);
               if (measuredDistance != null) {
@@ -74,11 +102,13 @@ final class FlashFocus17 {
             try {
               Float distance =
                   ((TotalCaptureResult) call.args[0]).get(CaptureResult.LENS_FOCUS_DISTANCE);
-              if (distance != null && Float.isFinite(distance) && distance >= 0)
+              Integer position = ((TotalCaptureResult) call.args[0]).get(nativeLensPositionResult);
+              if (distance != null && position != null && Float.isFinite(distance) && distance >= 0)
                 sample =
                     new FocusSample(
                         new WeakReference<>(Reflect.get(call.thisObject, "this$0")),
                         distance,
+                        position,
                         SystemClock.elapsedRealtime());
             } catch (Throwable error) {
               runtime.fail(error);
@@ -118,6 +148,9 @@ final class FlashFocus17 {
                       .invoke(currentMaker, CaptureRequest.LENS_FOCUS_DISTANCE);
               if (!(previousAfMode instanceof Integer)
                   || (int) previousAfMode == CaptureRequest.CONTROL_AF_MODE_OFF) return;
+              Object previousLensPosition =
+                  Reflect.method(photoMakerClass, "getPublicSetting", CaptureRequest.Key.class)
+                      .invoke(currentMaker, nativeLensPosition);
               runtime.guard.arm();
               hold =
                   new FocusHold(
@@ -125,17 +158,25 @@ final class FlashFocus17 {
                       Reflect.get(call.thisObject, "e"),
                       previousAfMode,
                       distance,
-                      latest.distance);
+                      previousLensPosition,
+                      latest.distance,
+                      latest.lensPosition);
               minimumHeldDistance = maximumHeldDistance = latest.distance;
+              minimumHeldPosition = maximumHeldPosition = latest.lensPosition;
               heldResultCount = 0;
               runtime.main.postDelayed(timeout, 8000);
               setPublicSetting.invoke(
                   currentMaker, CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
               setPublicSetting.invoke(
                   currentMaker, CaptureRequest.LENS_FOCUS_DISTANCE, latest.distance);
+              setPublicSetting.invoke(currentMaker, nativeLensPosition, latest.lensPosition);
               applySettings.invoke(currentMaker);
               runtime.report("FLASH: focus held at " + latest.distance + " diopters");
-              ModernHook.log("Flash focus held at " + latest.distance);
+              ModernHook.log(
+                  "Flash focus held at "
+                      + latest.distance
+                      + "; native position="
+                      + latest.lensPosition);
             } catch (Throwable error) {
               release("error");
               runtime.fail(error);
@@ -207,7 +248,11 @@ final class FlashFocus17 {
               + "; range="
               + minimumHeldDistance
               + ".."
-              + maximumHeldDistance);
+              + maximumHeldDistance
+              + "; native position="
+              + minimumHeldPosition
+              + ".."
+              + maximumHeldPosition);
     } catch (ReflectiveOperationException error) {
       // A disconnect already released this maker; never reopen a camera to restore it.
       ModernHook.log("Flash focus restore after disconnect: " + error.getClass().getSimpleName());
