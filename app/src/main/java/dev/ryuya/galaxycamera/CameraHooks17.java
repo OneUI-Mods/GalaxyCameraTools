@@ -110,6 +110,27 @@ final class CameraHooks17 {
             applyPreviewFps(call.thisObject);
           }
         });
+    // These small calls can be inlined into connectCamDevice before the first session exists.
+    // Deoptimize only the setup method, never the repeating request or image-processing loop.
+    ModernHook.deoptimize(
+        Reflect.method(
+            photoMaker,
+            "connectCamDevice",
+            Class.forName("com.samsung.android.camera.core2.CamDevice", false, l),
+            Class.forName(
+                "com.samsung.android.camera.core2.container.DeviceConfiguration", false, l),
+            Class.forName("com.samsung.android.camera.core2.MakerStateCallback", false, l),
+            Handler.class));
+    ModernHook.findAndHookMethod(
+        photoMaker,
+        "createBuilderConfig",
+        new ModernHook.Callback() {
+          protected void beforeHookedMethod(ModernHook.Param call) {
+            applyPreviewFps(call.thisObject);
+            if (rt.enabled(ConfigProvider.FPS) && mode() == 0)
+              ModernHook.log("Photo initial preview FPS prepared");
+          }
+        });
     Class<?> callback =
         Class.forName("com.samsung.android.camera.core2.maker.PhotoMakerBase$6", false, l);
     Class<?> cap = Class.forName("com.samsung.android.camera.core2.CamCapability", false, l);
@@ -141,7 +162,8 @@ final class CameraHooks17 {
     Activity current = activity.get();
     if (current == null) return false;
     try {
-      return (int) Reflect.call(cameraSettings.get(current), "f") == 0;
+      Object settings = cameraSettings.get(current);
+      return settings != null && (int) Reflect.call(settings, "f") == 0;
     } catch (ReflectiveOperationException error) {
       return false;
     }
@@ -151,7 +173,8 @@ final class CameraHooks17 {
     Activity a = activity.get();
     if (a == null || a.isFinishing()) return Integer.MIN_VALUE;
     try {
-      return (int) readMode.invoke(cameraSettings.get(a), modeKey);
+      Object settings = cameraSettings.get(a);
+      return settings == null ? Integer.MIN_VALUE : (int) readMode.invoke(settings, modeKey);
     } catch (ReflectiveOperationException e) {
       return Integer.MIN_VALUE;
     }

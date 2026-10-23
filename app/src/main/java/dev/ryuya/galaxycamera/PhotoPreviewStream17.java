@@ -5,14 +5,13 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.util.Size;
-import java.util.HashMap;
 import java.util.Map;
 
 /** Changes the producer buffer before the stock preview surface and session are configured. */
 final class PhotoPreviewStream17 {
   private final HostRuntime runtime;
   private final CameraHooks17 camera;
-  private final Map<Size, Size> selectedSizes = new HashMap<>();
+  private final Map<Size, Size> selectedSizes = new java.util.concurrent.ConcurrentHashMap<>();
 
   PhotoPreviewStream17(HostRuntime runtime, CameraHooks17 camera) {
     this.runtime = runtime;
@@ -49,11 +48,13 @@ final class PhotoPreviewStream17 {
                 selected = choose(size);
                 selectedSizes.put(size, selected);
               }
-              if (!selected.equals(size))
+              if (!selected.equals(size)) {
+                runtime.guard.arm();
                 call.setResult(
                     Reflect.value(
                         resolution,
                         "RESOLUTION_" + selected.getWidth() + "X" + selected.getHeight()));
+              }
             } catch (Exception unsupported) {
               ModernHook.log("Photo preview profile: keeping native size");
             }
@@ -80,7 +81,6 @@ final class PhotoPreviewStream17 {
               runtime.guard.arm();
               call.args[0] = selected.getWidth();
               call.args[1] = selected.getHeight();
-
             } catch (Exception unsupported) {
               ModernHook.log("Photo preview stream: keeping native size");
             }
