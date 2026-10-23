@@ -1,26 +1,27 @@
 # 作業状態 — 2026-10-23
 
-録画アプリ0.3.5を完了した後、カメラ側の作業を再開した。
+Galaxy Camera Tools 0.1.0-experimental。SDK 37、libxposed API 102。公開リポジトリ: https://github.com/OneUI-Mods/GalaxyCameraTools
 
-## 完了
+## 実装
 
-- Galaxy Camera Tools（dev.ryuya.galaxycamera）の新規プロジェクト。SDK 37、libxposed API 102、専用M3設定画面と日英韓中2種の表示、ライセンス画面。
-- 写真のpreview mapのみ60fpsを要求するAndroid 17プロファイル。温度、通常写真モード、Maker type、出力サイズと固定60fpsのcapabilityを検査し、SENSOR_TIMESTAMPで実測する。
-- 通常動画への背面FHD/UHD120fps候補・設定command対応。対応するnative enumとrecording feature mapのみを使用する。
-- Camera Assistantへのnative設定部品とproviderによる双方向同期。
-- Expert RAWのnative PREVIEW_CHANGE snapshot callbackへレンズ切り替えをつなぐ。連続指定は最後の対象へまとめ、失敗時600msで通常動作へ戻す。
-- ホストごとの異常終了履歴と2分/3回の保護。通常の強制停止をカウントしない。
-- releaseビルド、6件の単体テスト、lintRelease成功。release署名と16KiB alignment検証。55 runtime componentsのライセンス照合成功。
-- 署名済み試作release APKを実機へインストール済み。
+- 通常写真のpreview request mapへ60fpsを要求。still/record mapは変更しない。Maker type、撮影モード、stream min duration、fixed60 capability、温度を検査する。
+- 通常動画の背面FHD/UHD120。native feature mapを検査し、native menu・command対応、high-speed request schedulerの選択、JPEG snapshot streamの除外を組み合わせる。30/60に戻す場合はnative maker selectionへ戻る。
+- Expert RAWはsnapshotが表示されるまでレンズ変更を待ち、native blur/fadeから最初のpreviewへ受け渡す。連続入力は最新対象へまとめ、600msの失敗復帰、背景遷移時の解除を備える。
+- 超広角ライトはnative FLASH_IN_WIDE_LENSの読み取りと機能判定のみを切り替える。モジュールの設定以外にライト用の設定値を保存しない。温度保護などのnative判定は変更しない。
+- Camera Assistantのnative preference categoryと7個のswitch。providerで専用アプリと双方向同期。Androidのpackage visibilityに対応する、送信UIDを照合した明示的なreceiverとURI grant。
+- フラッシュのピント固定はnative lens positionを取得してAFと位置を保持し、撮影終了・キャンセル・背景遷移・OFFで元の値へ復帰する。
+- Quick Panelのライトは純正の安全判定を残し、短いleaseを持つProvider経由でCamera側へ転送する。
+- 一般Camera2アプリは選択されたプロセス内でphysical camera 5/6/7を親のlogical cameraと出力設定へ結び付ける。共有権限やHALのcapabilityは変更しない。
+- ホストごとの確定した異常終了履歴のみを数える2分/3回の保護。通常のforce-stop、更新、低メモリ終了は数えない。
 
-## 操作待ち
+## 検証
 
-実機操作の調整質問を送信済み。返答前にカメラを起動・撮影していない。Vectorの有効化とscope登録、Camera/Assistant/Expert RAWのプロセス読み込み直し、各機能の実機試験が必要。未確認のfpsやアニメーションを動作確認済みと報告しない。SystemUI・ホーム・本体の再起動は不要。
+[実機検証記録](device-validation-20261023.md)を参照。release build、単体テスト6件、lintRelease、55 runtime componentのlicense catalog、release署名と16KiB alignmentを検証。debug APKやテスト用Activityを配布しない。
 
-実機APKはCamera 17.0.00.43、Camera Assistant 5.0.00.7、Expert RAW 6.0.02.8。/system/cameradata/camera-feature.xmlでも背面FHD/UHD120の対応を確認した。8K120のnative定義は存在しない。別比率、HD、前面の120はこの版では追加しない。
+## 対応範囲
 
-## 残作業
+SM-S948Q / Android 17 / One UI 9 / BZI9、Camera 17.0.00.43、Camera Assistant 5.0.00.7、Expert RAW 6.0.02.8を個別の契約として識別する。他環境では撮影処理を変更しない。Android 16の既存アプリ・既存profileは変更していない。
 
-実機での初期化契約・プレビュー60の実測、120fps動画をffprobe/フレーム時刻で検証、Expert RAWの連続切替・OFF・失敗復帰、Assistantの表示と同期、UIの実機確認。必要なら修正後に再度releaseを署名する。GitHubリポジトリはまだ作成していない。既存アプリと同じ公開ルールで管理し、外部向け説明を用意してから配布する。
+8K120のnative定義は存在せず、HD・前面・別比率の120も追加しない。前面写真では60fps要求が通っても実測30fpsになる場合があり、背面の結果を前面の動作保証に流用しない。
 
-SamsungのAPK、逆コンパイル結果、capability dumpはAdaptive Bar側evidence/camera17にある非公開のローカル資料だけを使い、新リポジトリへ同梱しない。
+SamsungのAPK、逆コンパイル結果、capability dump、実機画像と動画は非公開のローカル資料であり、公開リポジトリや配布ZIPへ含めない。

@@ -27,7 +27,7 @@
   <string name="raw_hint">適用於鏡頭更換。保留前後鏡頭及解析度切換已有的動畫。</string>
   <string name="apply_hint">Camera Assistant與本應用程式的開關同步。變更相機設定後，請結束拍攝，強制停止相機並重新開啟，以更新錄影選項。</string>
   <string name="setup_title">模組設定</string>
-  <string name="setup_summary">在Vector中啟用此模組，並選擇相機、Camera Assistant及Expert RAW。安裝或更新後，強制停止並重新開啟對應應用程式。</string>
+  <string name="setup_summary">在Vector中選擇相機、Camera Assistant和Expert RAW。快捷面板手電筒還需選擇SystemUI。Camera2附加鏡頭需逐一加入使用的相機應用程式。安裝或更新後，強制停止並重新開啟目標應用程式。首次啟用SystemUI功能及模組更新後，需重新載入SystemUI。</string>
   <string name="support_summary">實驗支援：Galaxy S26 Ultra（SM-S948Q），Android 17 / One UI 9 BZI9。相機17.0.00.43、Camera Assistant 5.0.00.7、Expert RAW 6.0.02.8。其他版本保留原有行為。需要相容API 102的框架。</string>
   <string name="status_title">模組狀態</string>
   <string name="not_loaded">尚未載入。啟用模組後請開啟對應應用程式。</string>

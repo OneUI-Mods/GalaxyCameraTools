@@ -27,7 +27,7 @@
   <string name="raw_hint">レンズの変更時に適用します。前面・背面や解像度の変更で既に動く純正のアニメーションは維持します。</string>
   <string name="apply_hint">Camera Assistantとこのアプリのスイッチは連動します。カメラの設定を変えた後は、録画・撮影を終了し、カメラを強制停止してから開き直すと選択肢を更新できます。</string>
   <string name="setup_title">モジュールの設定</string>
-  <string name="setup_summary">Vectorでこのモジュールを有効にし、カメラ・Camera Assistant・Expert RAWを対象に選んでください。インストール・更新後は対象アプリを強制停止して開き直してください。</string>
+  <string name="setup_summary">Vectorでカメラ・Camera Assistant・Expert RAWを対象に選んでください。クイックパネルのライトにはSystemUIも選択します。Camera2の追加レンズには、使うカメラアプリを個別に追加してください。導入・更新後は対象アプリを強制停止して開き直します。SystemUIの初回有効化・更新後はSystemUIを再読み込みしてください。</string>
   <string name="support_summary">実験対応：Galaxy S26 Ultra（SM-S948Q）、Android 17 / One UI 9 BZI9。カメラ17.0.00.43、Camera Assistant 5.0.00.7、Expert RAW 6.0.02.8。別の版では純正の動作を使います。API 102対応のフレームワークが必要です。</string>
   <string name="status_title">モジュールの状態</string>
   <string name="not_loaded">未読み込み。モジュールを有効にして対象アプリを開いてください。</string>

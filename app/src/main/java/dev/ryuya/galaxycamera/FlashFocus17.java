@@ -243,6 +243,7 @@ final class FlashFocus17 {
     sample = null;
     runtime.main.removeCallbacks(timeout);
     try {
+      setPublicSetting.invoke(previous.maker, nativeLensPosition, previous.previousLensPosition);
       setPublicSetting.invoke(
           previous.maker, CaptureRequest.LENS_FOCUS_DISTANCE, previous.distance);
       setPublicSetting.invoke(

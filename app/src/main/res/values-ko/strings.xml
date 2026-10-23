@@ -27,7 +27,7 @@
   <string name="raw_hint">렌즈 변경에 적용합니다. 전면/후면 및 해상도 변경의 기존 애니메이션은 유지합니다.</string>
   <string name="apply_hint">Camera Assistant와 이 앱의 스위치는 동기화됩니다. 카메라 설정을 변경한 후 촬영을 종료하고 카메라를 강제 종료한 뒤 다시 열어 녹화 옵션을 새로 고치세요.</string>
   <string name="setup_title">모듈 설정</string>
-  <string name="setup_summary">Vector에서 이 모듈을 활성화하고 카메라, Camera Assistant 및 Expert RAW를 선택하세요. 설치 또는 업데이트 후 해당 앱을 강제 종료하고 다시 여세요.</string>
+  <string name="setup_summary">Vector에서 카메라, Camera Assistant, Expert RAW를 선택하세요. 빠른 설정 손전등은 SystemUI도 선택합니다. Camera2 추가 렌즈는 사용할 카메라 앱을 각각 추가하세요. 설치 및 업데이트 후 해당 앱을 강제 종료한 뒤 다시 여세요. SystemUI 최초 활성화 및 모듈 업데이트 후에는 SystemUI를 다시 불러오세요.</string>
   <string name="support_summary">실험적 지원: Galaxy S26 Ultra(SM-S948Q), Android 17 / One UI 9 BZI9. 카메라 17.0.00.43, Camera Assistant 5.0.00.7, Expert RAW 6.0.02.8. 다른 버전은 기본 동작을 유지합니다. API 102 호환 프레임워크가 필요합니다.</string>
   <string name="status_title">모듈 상태</string>
   <string name="not_loaded">아직 로드되지 않았습니다. 모듈을 활성화한 후 해당 앱을 여세요.</string>
