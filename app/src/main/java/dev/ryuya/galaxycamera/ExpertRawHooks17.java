@@ -48,6 +48,7 @@ final class ExpertRawHooks17 {
                 || Looper.myLooper() != Looper.getMainLooper()
                 || !rt.enabled(ConfigProvider.ANIMATION)) return;
             try {
+              rt.report("EXPERT RAW: lens request " + p.args[0]);
               if (prepare(p.thisObject, (int) p.args[0])) p.setResult(null);
             } catch (Throwable e) {
               rt.fail(e);
@@ -97,10 +98,15 @@ final class ExpertRawHooks17 {
     if (activity.isFinishing() || activity.isDestroyed()) return false;
     Object layer =
         Reflect.call(Reflect.call(context, "getLayerManager"), "getPreviewAnimationLayerManager");
-    if (!"NONE".equals(String.valueOf(Reflect.call(layer, "getCurrentAnimationType"))))
+    if (!"NONE".equals(String.valueOf(Reflect.call(layer, "getCurrentAnimationType")))) {
+      rt.report("EXPERT RAW: existing animation " + Reflect.call(layer, "getCurrentAnimationType"));
       return false;
+    }
     Object settings = Reflect.call(context, "getCameraSettings");
-    if ((int) Reflect.call(settings, "getCameraId") == cameraId) return false;
+    if ((int) Reflect.call(settings, "getCameraId") == cameraId) {
+      rt.report("EXPERT RAW: settings already reference requested lens");
+      return false;
+    }
     Rect rect =
         (Rect) Reflect.call(Reflect.call(context, "getPreviewManager"), "getPreviewLayoutRect");
     if (rect == null || rect.isEmpty()) return false;
