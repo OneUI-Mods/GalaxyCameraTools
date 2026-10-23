@@ -25,7 +25,8 @@ Android SDKのコンパイル対象は37です。JDK・Gradle・依存関係の�
 ## 現在の機能と実機記録
 
 - [実装の範囲](implementation-status.md)
-- [実機での検証と制限](device-validation-20261023.md)
+- [0.1.0の実機での検証と制限](device-validation-20261023.md)
+- [0.1.1のレンズ切り替え検証](device-validation-20261024.md)
 
 Camera2の追加レンズはVectorが選択したクライアントのプロセス内で扱います。共有の権限判定やcameraserverのバイナリは変更しません。入力したphysical camera IDは、サービスへの接続では親のlogical camera IDへ戻し、出力のコピーへphysical IDを付けます。アプリの公開device IDとnative requestのlogical IDを混同しないように分けています。API1や未確認のセッション方式への互換性は保証しません。
 

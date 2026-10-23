@@ -20,4 +20,4 @@ nativeのl9.a2解像度enum、e5 feature map、te.c0通常動画候補、d8.rの
 
 ## 写真のズーム描画
 
-ZoomView.H2が選んだnative curve runnerを同じdurationのframe-time samplingへ受け渡す。元の曲線を時間で補間し、フレームを落とした場合に古い設定更新を再生しない。世代番号とnative running stateを照合し、OFF時はnative runnerの残り区間へ復帰する。session初期のpreview FPSもcapability・surface・温度を照合して設定する。still/record builder、capture intent、transient actionは変更しない。
+ZoomView.H2が選んだnative curve runnerを同じdurationのframe-time samplingへ受け渡す。元の曲線を時間で補間し、フレームを落とした場合に古い設定更新を再生しない。世代番号とnative running stateを照合し、OFF時はnative runnerの残り区間へ復帰する。初期session設定は純正のまま維持し、既存のpreview requestへの60fps要求を使う。still/record builder、capture intent、transient actionは変更しない。

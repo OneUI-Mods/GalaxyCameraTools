@@ -17,12 +17,12 @@ Galaxy Camera Tools 0.1.1-experimental。SDK 37、libxposed API 102。公開リ�
 
 ## 検証
 
-[実機検証記録](device-validation-20261023.md)を参照。release build、単体テスト11件、lintRelease、55 runtime componentのlicense catalog、release署名と16KiB alignmentを検証。debug APKやテスト用Activityを配布しない。
+[0.1.0の実機検証記録](device-validation-20261023.md)と[0.1.1のレンズ切り替え検証](device-validation-20261024.md)を参照。release build、単体テスト11件、lintRelease、55 runtime componentのlicense catalog、release署名と16KiB alignmentを検証。debug APKやテスト用Activityを配布しない。
 
 ## 対応範囲
 
 SM-S948Q / Android 17 / One UI 9 / BZI9、Camera 17.0.00.43、Camera Assistant 5.0.00.7、Expert RAW 6.0.02.8を個別の契約として識別する。他環境では撮影処理を変更しない。Android 16の既存アプリ・既存profileは変更していない。
 
-8K120のnative定義は存在せず、HD・前面・別比率の120も追加しない。前面写真では60fps要求が通っても実測30fpsになる場合があり、背面の結果を前面の動作保証に流用しない。
+8K120のnative定義は存在せず、HD・前面・別比率の120も追加しない。前面写真では60fps要求が通っても実測30fpsになる場合がある。背面のレンズ切り替えでも一部は30fps台であり、描画同期の完了を映像60fpsの達成と混同しない。
 
 SamsungのAPK、逆コンパイル結果、capability dump、実機画像と動画は非公開のローカル資料であり、公開リポジトリや配布ZIPへ含めない。
