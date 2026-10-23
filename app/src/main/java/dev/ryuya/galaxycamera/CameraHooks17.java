@@ -19,6 +19,10 @@ final class CameraHooks17 {
   private Class<?> settingsKey;
   private Object modeKey;
   private String stream = "";
+  private final Map<String, Size> eligiblePreviewSizes =
+      new java.util.concurrent.ConcurrentHashMap<>();
+  private Range<Integer> zoomResultRange;
+  private Long zoomExposure;
   private long firstTimestamp, lastTimestamp, firstFrame;
   private int samples;
   private long zoomUntil, zoomLastTimestamp, zoomIntervals, zoomTotalNanos, zoomSlowIntervals;
@@ -94,6 +98,38 @@ final class CameraHooks17 {
         new ModernHook.Callback() {
           protected void afterHookedMethod(ModernHook.Param p) {
             if (!p.hasThrowable() && rt.guard.allowed()) measure((TotalCaptureResult) p.args[0]);
+          }
+        });
+    Class<?> sessionConfig =
+        Class.forName("com.samsung.android.camera.core2.container.SessionConfig", false, l);
+    Class<?> sessionMode =
+        Class.forName("com.samsung.android.camera.core2.CamDevice$SessionMode", false, l);
+    Class<?> device =
+        Class.forName("com.samsung.android.camera.core2.device.CamDeviceImpl", false, l);
+    ModernHook.findAndHookMethod(
+        device,
+        "X",
+        sessionConfig,
+        sessionMode,
+        new ModernHook.Callback() {
+          protected void beforeHookedMethod(ModernHook.Param p) {
+            if (!rt.enabled(ConfigProvider.FPS) || mode() != 0) return;
+            try {
+              String id = (String) Reflect.get(p.thisObject, "e");
+              if (!eligiblePreviewSizes.containsKey(id)) return;
+              Object config = Reflect.get(p.args[0], "k");
+              Map<?, ?> previewBuilders = (Map<?, ?>) Reflect.get(config, "a");
+              for (Object value : previewBuilders.values()) {
+                if (value instanceof CaptureRequest.Builder builder) {
+                  Range<Integer> previous = builder.get(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE);
+                  builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(60, 60));
+                  ModernHook.log(
+                      "Photo session: id=" + id + "; initial FPS=" + previous + " -> [60, 60]");
+                }
+              }
+            } catch (ReflectiveOperationException | IllegalArgumentException error) {
+              rt.fail(error);
+            }
           }
         });
     new PhotoZoomTiming17(rt, this).install();
@@ -193,6 +229,7 @@ final class CameraHooks17 {
               + thermal);
       return;
     }
+    eligiblePreviewSizes.put(id, size);
     rt.guard.arm();
     p.args[3] = new Range<>(60, 60);
     stream = "id=" + id + "; preview=" + size;
@@ -203,6 +240,8 @@ final class CameraHooks17 {
     zoomUntil = SystemClock.uptimeMillis() + 1500;
     zoomLastTimestamp = zoomIntervals = zoomTotalNanos = zoomSlowIntervals = 0;
     zoomRequest = null;
+    zoomResultRange = null;
+    zoomExposure = null;
   }
 
   private synchronized void measureZoom(TotalCaptureResult result, long timestamp) {
@@ -212,11 +251,14 @@ final class CameraHooks17 {
         ModernHook.log(
             String.format(
                 Locale.ROOT,
-                "Photo zoom sensor: %.1f fps; intervals=%d; over25ms=%d; requested=%s",
+                "Photo zoom sensor: %.1f fps; intervals=%d; over25ms=%d; requested=%s; result=%s;"
+                    + " exposure=%s",
                 zoomIntervals * 1_000_000_000d / zoomTotalNanos,
                 zoomIntervals,
                 zoomSlowIntervals,
-                zoomRequest));
+                zoomRequest,
+                zoomResultRange,
+                zoomExposure));
       zoomUntil = 0;
       return;
     }
@@ -228,6 +270,8 @@ final class CameraHooks17 {
     }
     zoomLastTimestamp = timestamp;
     zoomRequest = result.getRequest().get(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE);
+    zoomResultRange = result.get(CaptureResult.CONTROL_AE_TARGET_FPS_RANGE);
+    zoomExposure = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
   }
 
   private void measure(TotalCaptureResult result) {

@@ -24,7 +24,8 @@ final class RawLensMotion17 {
   private final Rect previewClip;
   private final Runnable timeout = this::finish;
   private ValueAnimator zoom, fade;
-  private boolean previewReady, travelFinished, finished;
+  private boolean previewReady, travelFinished, fadeFinished, finished;
+  private float progress;
 
   RawLensMotion17(
       HostRuntime runtime, Object context, Object layer, int from, int to, Runnable completed)
@@ -56,7 +57,8 @@ final class RawLensMotion17 {
   }
 
   void start() {
-    blur.setVisibility(View.GONE);
+    blur.setAlpha(1f);
+    blur.setVisibility(ratio < 1f ? View.VISIBLE : View.GONE);
     snapshot.setVisibility(View.VISIBLE);
     snapshot.setAlpha(1f);
     snapshot.setPivotX(snapshot.getWidth() / 2f);
@@ -64,7 +66,7 @@ final class RawLensMotion17 {
     snapshot.setRequestedFrameRate(60f);
     preview.setRequestedFrameRate(60f);
     runtime.main.postDelayed(timeout, 2000);
-    if (ratio > 1f) startTravel();
+    startTravel();
     ModernHook.log("Expert RAW lens motion: field-of-view ratio=" + ratio);
   }
 
@@ -72,8 +74,7 @@ final class RawLensMotion17 {
     if (finished || previewReady) return;
     previewReady = true;
     if (ratio < 1f) {
-      transformPreview(1f / ratio);
-      startTravel();
+      transformPreview(1f + (1f / ratio - 1f) * (1f - progress));
       startFade();
     } else if (travelFinished) {
       startFade();
@@ -88,13 +89,16 @@ final class RawLensMotion17 {
     zoom.addUpdateListener(
         value -> {
           if (finished) return;
-          float progress = (float) value.getAnimatedValue();
+          progress = (float) value.getAnimatedValue();
           if (ratio > 1f) {
             float scale = 1f + (ratio - 1f) * progress;
             snapshot.setScaleX(scale);
             snapshot.setScaleY(scale);
           } else {
-            transformPreview(1f + (1f / ratio - 1f) * (1f - progress));
+            float scale = 1f + (ratio - 1f) * progress;
+            snapshot.setScaleX(scale);
+            snapshot.setScaleY(scale);
+            if (previewReady) transformPreview(1f + (1f / ratio - 1f) * (1f - progress));
           }
         });
     zoom.addListener(
@@ -103,8 +107,9 @@ final class RawLensMotion17 {
           public void onAnimationEnd(Animator animation) {
             if (finished) return;
             travelFinished = true;
-            if (ratio < 1f) finish();
-            else if (previewReady) startFade();
+            if (ratio < 1f) {
+              if (fadeFinished) finish();
+            } else if (previewReady) startFade();
           }
         });
     zoom.start();
@@ -126,12 +131,18 @@ final class RawLensMotion17 {
     if (finished || fade != null) return;
     fade = ValueAnimator.ofFloat(snapshot.getAlpha(), 0f);
     fade.setDuration(90);
-    fade.addUpdateListener(value -> snapshot.setAlpha((float) value.getAnimatedValue()));
+    fade.addUpdateListener(
+        value -> {
+          float alpha = (float) value.getAnimatedValue();
+          snapshot.setAlpha(alpha);
+          blur.setAlpha(alpha);
+        });
     fade.addListener(
         new AnimatorListenerAdapter() {
           @Override
           public void onAnimationEnd(Animator animation) {
-            if (!finished && ratio >= 1f) finish();
+            fadeFinished = true;
+            if (!finished && (ratio >= 1f || travelFinished)) finish();
           }
         });
     fade.start();
@@ -154,6 +165,7 @@ final class RawLensMotion17 {
     snapshot.setAlpha(1f);
     snapshot.setRequestedFrameRate(snapshotFrameRate);
     snapshot.setVisibility(View.GONE);
+    blur.setAlpha(1f);
     blur.setVisibility(View.GONE);
     try {
       Reflect.call(layer, "cancelPreviewAnimation");

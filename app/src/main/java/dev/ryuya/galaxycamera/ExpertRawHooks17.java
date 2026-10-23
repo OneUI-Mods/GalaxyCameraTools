@@ -69,6 +69,27 @@ final class ExpertRawHooks17 {
             "handleLensTypeChanged",
             int.class,
             int.class));
+    Class<?> pro = Class.forName(BASE + "shootingmode.pro.ProPresenter", false, l);
+    Class<?> settingKey = Class.forName(BASE + "interfaces.CameraSettings$Key", false, l);
+    for (Method caller :
+        new Method[] {
+          Reflect.method(
+              pro,
+              "lambda$initializeSettingChangeConsumerMap$53",
+              settingKey,
+              int.class,
+              int.class),
+          Reflect.method(pro, "onCameraSettingChanged", settingKey, int.class, int.class),
+          Reflect.method(
+              Class.forName(BASE + "shootingmode.pro.j", false, l),
+              "onCameraSettingChanged",
+              settingKey,
+              int.class,
+              int.class),
+          Reflect.method(presenter, "switchCamera", int.class)
+        }) {
+      ModernHook.deoptimize(caller);
+    }
     ModernHook.hookMethod(
         switchCamera,
         new ModernHook.Callback() {
