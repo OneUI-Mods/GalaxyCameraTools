@@ -72,7 +72,7 @@ final class VideoModes17 {
                       || name.contains("captureIntent")
                       || name.contains("shootingMode")
                       || name.equals("android.control.mode"))
-                    details.append("; ").append(name).append('=').append(request.get(key));
+                    details.append("; ").append(name).append('=').append(Arrays.deepToString(new Object[] {request.get(key)}));
                 }
               }
               ModernHook.log("RECORD CONFIG: " + details);
