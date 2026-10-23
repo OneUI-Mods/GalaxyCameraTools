@@ -4,7 +4,7 @@
 
 Galaxy S26 Ultra SM-S948Q、CP2A.260605.016.S948QOPU1BZI9、SDK37。Camera 17.0.00.43、Camera Assistant 5.0.00.7、Expert RAW 6.0.02.8、API102対応Vector。
 
-端末・SystemUI・ホームの再起動は行わず、対象カメラアプリのforce-stop/openで確認した。
+写真・動画・Expert RAWは対象アプリのforce-stop/openで確認した。Quick Panelの追加機能はGalaxy ReloadによるSystemUIのみの再読み込み後に確認した。カメラ機能の試験では端末全体を再起動していない。
 
 ## 写真プレビュー
 
@@ -31,7 +31,7 @@ snapshotの表示を待ってからレンズを切り替える経路を確認。
 
 ## UI・同期・保護
 
-専用M3画面とCamera Assistantの4スイッチを確認。専用アプリ→Camera Assistant、Camera Assistant→専用アプリの両方向の反映を確認。5言語のresource key整合、license catalogを検証した。通常のforce-stopを繰り返しても保護は発動していない。
+専用M3画面とCamera Assistantの7スイッチを確認。専用アプリ→Camera Assistant、Camera Assistant→専用アプリの両方向の反映を確認。追加したピント固定もAssistant側でOFF/ONし、保存値が両方向で一致することを確認。5言語のresource key整合、license catalogを検証した。通常のforce-stopを繰り返しても保護は発動していない。
 
 試験用の写真・動画・画面録画は個別に識別して除去する。ユーザーの既存メディアをまとめて削除しない。
 
@@ -42,3 +42,5 @@ snapshotの表示を待ってからレンズを切り替える経路を確認。
 - Camera2のhidden IDの表示フィルターだけを外す案では、metadataを取得できてもnative connectで拒否されることを確認した。実装は、公開logical cameraのphysical output routingを使う方式へ変更した。metadata、カメラ権限、HALの解像度・fpsは偽装しない。
 - 一般アプリUIDでnative physical ID 5/6/7へ出力を結び、各60フレームを取得した。望遠6では3648x2736 JPEG（2944426 bytes、focal=7.0、physical=[6]）、望遠7では4080x3060 JPEG（203602 bytes、focal=18.6、physical=[7]）を取得した。画像はテストアプリのメモリだけで扱い、写真ライブラリには保存していない。RAW、高fps・高解像度のすべての組み合わせは未確認。
 - 通常動画でFHD120選択後に追加機能をOFFにしてcold startし、エラー画面を出さずFHD30へ復帰することを確認。無効化後に初期セッションが120を先に読み込まないよう、native設定の読み取り時点で変換する。プロ動画用の設定は対象にしない。
+
+最終のrelease版でもピント固定をcold startでOFF/ONし、OFFでは保持処理が実行されず、ONではAF OFF中の30フレームで距離16.393442・native position2165が一定となり、完了時に復帰することを確認した。
