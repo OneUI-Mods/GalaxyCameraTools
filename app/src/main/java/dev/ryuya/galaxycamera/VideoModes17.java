@@ -27,57 +27,32 @@ final class VideoModes17 {
     backSetting = Reflect.value(setting, "BACK_CAMCORDER_RESOLUTION");
     Class<?> videoMaker =
         Class.forName("com.samsung.android.camera.core2.maker.VideoMaker", false, l);
-    Class<?> proMaker =
-        Class.forName("com.samsung.android.camera.core2.maker.ProVideoMaker", false, l);
+    Class<?> highRateMaker =
+        Class.forName("com.samsung.android.camera.core2.maker.ProSlowMotionVideoMaker", false, l);
+    // Use the same high-speed request scheduler as native Pro Video at 120 fps.
+    // Selecting the class here also lets Samsung replace it when returning to 30/60.
     ModernHook.findAndHookMethod(
-        Class.forName("com.samsung.android.camera.core2.maker.MakerFactory", false, l),
-        "create",
-        Class.class,
-        Class.forName(
-            "com.samsung.android.camera.core2.maker.MakerFactory$Configuration", false, l),
+        Class.forName("u8.g", false, l),
+        "b",
+        int.class,
+        Class.forName("z8.e1", false, l),
         new ModernHook.Callback() {
-          protected void beforeHookedMethod(ModernHook.Param p) {
-            if (p.args[0] != videoMaker || !rt.enabled(ConfigProvider.VIDEO) || camera.mode() != 1)
-              return;
+          protected void afterHookedMethod(ModernHook.Param p) {
+            if (p.hasThrowable()
+                || p.getResult() != videoMaker
+                || (int) p.args[0] != 1
+                || !rt.enabled(ConfigProvider.VIDEO)) return;
             try {
               Object selected =
                   Reflect.method(resolution, "j", int.class)
                       .invoke(null, camera.backVideoResolution());
               if (supported(selected)) {
                 rt.guard.arm();
-                p.args[0] = proMaker;
-                rt.report("VIDEO: native high-frame-rate maker selected");
+                p.setResult(highRateMaker);
+                rt.report("VIDEO: native 120 fps request scheduler selected");
               }
             } catch (Throwable e) {
               rt.fail(e);
-            }
-          }
-        });
-    ModernHook.findAndHookMethod(
-        Class.forName("com.samsung.android.camera.core2.maker.VideoMakerBase", false, l),
-        "startRecordRepeating",
-        new ModernHook.Callback() {
-          protected void beforeHookedMethod(ModernHook.Param p) {
-            try {
-              Object raw = Reflect.get(p.thisObject, "mRecordRequestBuilderMap");
-              if (!(raw instanceof Map<?, ?> map)) return;
-              StringBuilder details = new StringBuilder(p.thisObject.getClass().getSimpleName());
-              for (Object builder : map.values()) {
-                android.hardware.camera2.CaptureRequest request =
-                    ((android.hardware.camera2.CaptureRequest.Builder) builder).build();
-                for (android.hardware.camera2.CaptureRequest.Key<?> key : request.getKeys()) {
-                  String name = key.getName();
-                  if (name.contains("aeTarget")
-                      || name.contains("recording")
-                      || name.contains("captureIntent")
-                      || name.contains("shootingMode")
-                      || name.equals("android.control.mode"))
-                    details.append("; ").append(name).append('=').append(Arrays.deepToString(new Object[] {request.get(key)}));
-                }
-              }
-              ModernHook.log("RECORD CONFIG: " + details);
-            } catch (Throwable e) {
-              ModernHook.log("Record diagnostic unavailable: " + e);
             }
           }
         });

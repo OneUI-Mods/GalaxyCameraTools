@@ -31,7 +31,9 @@ final class HostRuntime {
     thread.start();
     worker = new Handler(thread.getLooper());
     guard = new CrashGuard(c);
-    worker.post(this::load);
+    // The first preview request can arrive before a background read completes.
+    // Read once before installing changes; visibility retries remain asynchronous.
+    load();
   }
 
   boolean available() {

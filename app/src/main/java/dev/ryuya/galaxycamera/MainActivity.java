@@ -165,6 +165,7 @@ public final class MainActivity extends AppCompatActivity {
         com.google.android.material.R.style.TextAppearance_Material3_TitleMedium);
     heading.setText(title);
     row.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
+    heading.setPadding(0, 0, dp(12), 0);
     MaterialSwitch toggle = new MaterialSwitch(this);
     toggle.setContentDescription(getText(title));
     row.addView(toggle);
@@ -190,6 +191,9 @@ public final class MainActivity extends AppCompatActivity {
     card.setCardElevation(0);
     card.setRadius(dp(24));
     card.setStrokeWidth(0);
+    card.setCardBackgroundColor(
+        com.google.android.material.color.MaterialColors.getColor(
+            this, com.google.android.material.R.attr.colorSurfaceContainerLow, 0));
     var lp = new LinearLayout.LayoutParams(-1, -2);
     lp.bottomMargin = dp(16);
     page.addView(card, lp);
