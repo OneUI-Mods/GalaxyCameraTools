@@ -137,6 +137,16 @@ final class CameraHooks17 {
     focusSamples = listener;
   }
 
+  boolean rearCamera() {
+    Activity current = activity.get();
+    if (current == null) return false;
+    try {
+      return (int) Reflect.call(cameraSettings.get(current), "f") == 0;
+    } catch (ReflectiveOperationException error) {
+      return false;
+    }
+  }
+
   int mode() {
     Activity a = activity.get();
     if (a == null || a.isFinishing()) return Integer.MIN_VALUE;

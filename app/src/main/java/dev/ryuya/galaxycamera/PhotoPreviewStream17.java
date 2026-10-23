@@ -21,6 +21,44 @@ final class PhotoPreviewStream17 {
 
   void install() throws Exception {
     Class<?> surfaceManager = Class.forName("vb.g", false, runtime.loader);
+    Class<?> resolution = Class.forName("l9.a2", false, runtime.loader);
+    ModernHook.deoptimize(Reflect.method(surfaceManager, "a", int.class, int.class));
+    ModernHook.deoptimize(
+        Reflect.method(
+            Class.forName("vb.c", false, runtime.loader),
+            "k",
+            android.graphics.Rect.class,
+            resolution));
+    // Photo's deferred-surface profile otherwise replaces the chosen dimensions with 1920x1440.
+    ModernHook.findAndHookMethod(
+        Class.forName("gd.i", false, runtime.loader),
+        "p",
+        new ModernHook.Callback() {
+          protected void afterHookedMethod(ModernHook.Param call) {
+            if (call.hasThrowable()
+                || call.getResult() == null
+                || !runtime.enabled(ConfigProvider.LIGHT_PREVIEW)
+                || camera.mode() != 0
+                || !camera.rearCamera()) return;
+            try {
+              Object original = call.getResult();
+              Size size =
+                  new Size((int) Reflect.call(original, "m"), (int) Reflect.call(original, "d"));
+              Size selected = selectedSizes.get(size);
+              if (selected == null) {
+                selected = choose(size);
+                selectedSizes.put(size, selected);
+              }
+              if (!selected.equals(size))
+                call.setResult(
+                    Reflect.value(
+                        resolution,
+                        "RESOLUTION_" + selected.getWidth() + "X" + selected.getHeight()));
+            } catch (Exception unsupported) {
+              ModernHook.log("Photo preview profile: keeping native size");
+            }
+          }
+        });
     ModernHook.findAndHookMethod(
         surfaceManager,
         "a",
@@ -42,10 +80,17 @@ final class PhotoPreviewStream17 {
               runtime.guard.arm();
               call.args[0] = selected.getWidth();
               call.args[1] = selected.getHeight();
-              ModernHook.log("Photo preview stream: " + requested + " -> " + selected);
+
             } catch (Exception unsupported) {
               ModernHook.log("Photo preview stream: keeping native size");
             }
+          }
+
+          protected void afterHookedMethod(ModernHook.Param call) throws Exception {
+            if (!call.hasThrowable()
+                && runtime.enabled(ConfigProvider.LIGHT_PREVIEW)
+                && camera.mode() == 0)
+              ModernHook.log("Photo preview configured: " + Reflect.get(call.thisObject, "k"));
           }
         });
   }
