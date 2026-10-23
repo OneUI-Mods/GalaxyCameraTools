@@ -19,7 +19,7 @@ final class CameraHooks17 {
   private Class<?> settingsKey;
   private Object modeKey;
   private String stream = "";
-  private long firstTimestamp, lastTimestamp;
+  private long firstTimestamp, lastTimestamp, firstFrame;
   private int samples;
 
   CameraHooks17(HostRuntime runtime) {
@@ -91,8 +91,7 @@ final class CameraHooks17 {
         cap,
         new ModernHook.Callback() {
           protected void afterHookedMethod(ModernHook.Param p) {
-            if (!p.hasThrowable() && rt.enabled(ConfigProvider.FPS))
-              measure((TotalCaptureResult) p.args[0]);
+            if (!p.hasThrowable() && rt.guard.allowed()) measure((TotalCaptureResult) p.args[0]);
           }
         });
     new VideoModes17(rt, this).install();
@@ -159,18 +158,30 @@ final class CameraHooks17 {
     if (timestamp == null) return;
     if (firstTimestamp == 0 || timestamp <= lastTimestamp) {
       firstTimestamp = timestamp;
+      firstFrame = result.getFrameNumber();
       samples = 0;
     }
     lastTimestamp = timestamp;
     samples++;
     long elapsed = timestamp - firstTimestamp;
     if (elapsed >= 2_000_000_000L && samples > 1) {
-      double fps = (samples - 1) * 1_000_000_000d / elapsed;
+      double fps = (result.getFrameNumber() - firstFrame) * 1_000_000_000d / elapsed;
+      double callbacks = (samples - 1) * 1_000_000_000d / elapsed;
+      Long duration = result.get(CaptureResult.SENSOR_FRAME_DURATION);
       Range<Integer> requested =
           result.getRequest().get(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE);
       rt.report(
-          String.format(Locale.ROOT, "PHOTO: %.1f fps; request=%s; %s", fps, requested, stream));
+          String.format(
+              Locale.ROOT,
+              "PHOTO: %.1f fps; callbacks=%.1f; frameDuration=%s; request=%s; override=%s; %s",
+              fps,
+              callbacks,
+              duration,
+              requested,
+              rt.enabled(ConfigProvider.FPS),
+              stream));
       firstTimestamp = timestamp;
+      firstFrame = result.getFrameNumber();
       samples = 1;
     }
   }

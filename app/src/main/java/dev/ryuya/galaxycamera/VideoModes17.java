@@ -71,6 +71,7 @@ final class VideoModes17 {
                       }));
               Object array = Array.newInstance(resolution, values.size());
               for (int i = 0; i < values.size(); i++) Array.set(array, i, values.get(i));
+              rt.guard.arm();
               p.setResult(array);
             } catch (Throwable e) {
               rt.fail(e);
@@ -152,7 +153,7 @@ final class VideoModes17 {
     // native Pro aspect ratios must not enter the normal menu without one.
     if (!Set.of("RESOLUTION_3840X2160_120FPS", "RESOLUTION_1920X1080_120FPS")
         .contains(value.toString())) return false;
-    Object raw = Reflect.method(features, "c", resolution).invoke(null, value);
+    Object raw = Reflect.method(features, "a", resolution).invoke(null, value);
     if (!(raw instanceof Map<?, ?> map) || !Boolean.parseBoolean(String.valueOf(map.get("value"))))
       return false;
     String modes = String.valueOf(map.get("supported-mode"));
