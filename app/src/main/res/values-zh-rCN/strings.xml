@@ -34,4 +34,7 @@
   <string name="reset_guard">重置崩溃保护</string>
   <string name="guard_summary">模块操作后，两分钟内确认三次异常退出时，将停止更改对应应用。普通进程重启不计入。重置保护后，强行停止并重新打开该应用以重试。</string>
   <string name="version">版本 %1$s</string>
+  <string name="light_section">超广角照明</string>
+  <string name="light_title">使用超广角镜头时允许闪光灯</string>
+  <string name="light_summary">允许在后置超广角镜头中使用三星相机的闪光灯和视频照明。保留温度等原有保护。更改后请强行停止相机并重新打开。</string>
 </resources>

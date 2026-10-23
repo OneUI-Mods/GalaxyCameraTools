@@ -13,9 +13,10 @@ public final class ConfigProvider extends ContentProvider {
   static final String EXPERT = "com.samsung.android.app.galaxyraw";
   static final String FPS = "photo_preview_60",
       VIDEO = "video_120",
-      ANIMATION = "expert_lens_animation";
+      ANIMATION = "expert_lens_animation",
+      LIGHT = "ultra_wide_light";
   static final Set<String> HOSTS = Set.of(CAMERA, ASSISTANT, EXPERT);
-  static final String[] KEYS = {FPS, VIDEO, ANIMATION};
+  static final String[] KEYS = {FPS, VIDEO, ANIMATION, LIGHT};
   static final Uri URI = Uri.parse("content://dev.ryuya.galaxycamera.config");
 
   public boolean onCreate() {

@@ -34,4 +34,7 @@
   <string name="reset_guard">충돌 보호 초기화</string>
   <string name="guard_summary">모듈 작업 후 2분 이내에 충돌이 3회 확인되면 해당 앱의 변경을 중지합니다. 일반 프로세스 재시작은 세지 않습니다. 보호를 초기화한 뒤 앱을 강제 종료하고 다시 열어 재시도하세요.</string>
   <string name="version">버전 %1$s</string>
+  <string name="light_section">초광각 조명</string>
+  <string name="light_title">초광각 렌즈에서 조명 사용</string>
+  <string name="light_summary">후면 초광각 렌즈에서도 Samsung 카메라의 플래시와 동영상 조명을 사용할 수 있습니다. 온도 등 기본 보호 기능은 유지됩니다. 변경 후 카메라를 강제 종료하고 다시 여세요.</string>
 </resources>

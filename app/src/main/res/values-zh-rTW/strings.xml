@@ -34,4 +34,7 @@
   <string name="reset_guard">重設當機保護</string>
   <string name="guard_summary">模組操作後，兩分鐘內確認三次異常結束時，將停止變更對應應用程式。一般處理程序重新啟動不計入。重設保護後，強制停止並重新開啟該應用程式以重試。</string>
   <string name="version">版本 %1$s</string>
+  <string name="light_section">超廣角照明</string>
+  <string name="light_title">使用超廣角鏡頭時允許閃光燈</string>
+  <string name="light_summary">允許在後置超廣角鏡頭中使用三星相機的閃光燈與影片照明。保留溫度等原有保護。變更後請強制停止相機並重新開啟。</string>
 </resources>

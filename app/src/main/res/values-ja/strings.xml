@@ -34,4 +34,7 @@
   <string name="reset_guard">クラッシュ保護を解除</string>
   <string name="guard_summary">モジュールの処理後、2分以内に3回の異常終了を確認すると、そのアプリへの変更を停止します。通常のプロセス再起動は数えません。解除後は対象アプリを強制停止して開き直すと再試行できます。</string>
   <string name="version">バージョン %1$s</string>
+  <string name="light_section">超広角のライト</string>
+  <string name="light_title">超広角でもライトを使用</string>
+  <string name="light_summary">背面の超広角レンズでも、純正カメラのフラッシュと動画ライトを使えるようにします。温度などの純正の保護は維持します。変更後はカメラを強制停止して開き直してください。</string>
 </resources>

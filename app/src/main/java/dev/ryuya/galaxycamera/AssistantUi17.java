@@ -84,8 +84,12 @@ final class AssistantUi17 {
     Class<?> nativeSwitch =
         Class.forName(
             "com.samsung.android.app.cameraassistant.CameraSwitchPreference", false, rt.loader);
-    int[] titles = {R.string.photo_title, R.string.video_title, R.string.raw_title};
-    int[] summaries = {R.string.photo_summary, R.string.video_summary, R.string.raw_summary};
+    int[] titles = {
+      R.string.photo_title, R.string.video_title, R.string.raw_title, R.string.light_title
+    };
+    int[] summaries = {
+      R.string.photo_summary, R.string.video_summary, R.string.raw_summary, R.string.light_summary
+    };
     for (int i = 0; i < ConfigProvider.KEYS.length; i++) {
       String key = ConfigProvider.KEYS[i];
       Object pref =

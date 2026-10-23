@@ -34,4 +34,7 @@
   <string name="reset_guard">Reset crash protection</string>
   <string name="guard_summary">Three confirmed crashes within two minutes after module operations stop changes in that app. Normal process restarts do not count. Reset protection and force stop/reopen the affected app to retry.</string>
   <string name="version">Version %1$s</string>
+  <string name="light_section">Ultra-wide light</string>
+  <string name="light_title">Use light with the ultra-wide lens</string>
+  <string name="light_summary">Allows Samsung Camera’s flash and video light with the rear ultra-wide lens. Native temperature and camera protections remain active. Force stop and reopen Camera after changing this option.</string>
 </resources>

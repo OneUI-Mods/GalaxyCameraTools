@@ -95,6 +95,7 @@ final class CameraHooks17 {
           }
         });
     new VideoModes17(rt, this).install();
+    new UltraWideLight17(rt).install();
     rt.ready();
   }
 

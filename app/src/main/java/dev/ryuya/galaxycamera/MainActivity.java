@@ -56,6 +56,8 @@ public final class MainActivity extends AppCompatActivity {
         camera,
         R.string.video_limits,
         com.google.android.material.R.style.TextAppearance_Material3_BodyMedium);
+    section(camera, R.string.light_section);
+    toggle(camera, ConfigProvider.LIGHT, R.string.light_title, R.string.light_summary);
     text(
         camera,
         R.string.apply_hint,
