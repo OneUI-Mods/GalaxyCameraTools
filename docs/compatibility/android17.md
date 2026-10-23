@@ -4,7 +4,7 @@
 
 ## 写真
 
-Camera 17.0.00.43のMakerBase.setPublicSetting / setSessionKeysの同期scopeで所有Makerを保持し、SemCaptureRequest.eのうちmPreviewRequestBuilderMapと同一のmapだけへCONTROL_AE_TARGET_FPS_RANGEを適用する。静止画・動画用mapには適用しない。通常写真MODE_CUSTOM_SETTING=0、Maker type=1、shooting mode=1/2、固定60fps範囲、実際のpreview sizeのSurfaceTexture最小フレーム時間、温度を照合する。実測はTotalCaptureResultのSENSOR_TIMESTAMPで集計する。
+MakerBase.setPublicSetting / setSessionKeysの完了後、PhotoMakerBase.createBuilderConfig / startPreviewRepeating / MakerBase.applySettingsの開始前に実際のmPreviewRequestBuilderMapを検査する。vendor helperへの呼び出しがinliningされた場合にも、preview builderの最終値を整える。still/record mapは変更しない。通常写真MODE_CUSTOM_SETTING=0、Maker type=1、shooting mode=1/2、固定60fps、実際のpreview sizeのSurfaceTexture最小フレーム時間を照合する。capabilityはcacheし、Androidの熱状態はイベントで更新する。Samsung overHeatHintが正の場合にも退避したglobal/physical fpsを復元し、native制限へ戻す。
 
 ## 動画
 
@@ -20,4 +20,16 @@ nativeのl9.a2解像度enum、e5 feature map、te.c0通常動画候補、d8.rの
 
 ## 写真のズーム描画
 
-ZoomView.H2が選んだnative curve runnerを同じdurationのframe-time samplingへ受け渡す。元の曲線を時間で補間し、フレームを落とした場合に古い設定更新を再生しない。世代番号とnative running stateを照合し、OFF時はnative runnerの残り区間へ復帰する。初期session設定は純正のまま維持し、既存のpreview requestへの60fps要求を使う。still/record builder、capture intent、transient actionは変更しない。
+ZoomView.H2のtable-based zoomは、frame timeをsmoothstepで補間した純正数値曲線を使う。durationは純正の1.35倍、下限320ms・上限1100msとする。120Hzパネルでもnative requestは最大約60回/秒にまとめる。Camera2の変更は純正のzoom Handlerへ1件だけ送り、後続フレームは最新値へ置き換える。最終値の適用後にnativeの終了処理を呼ぶ。世代変更・clear・OFFでqueued処理を取り消し、OFFでは対応するnative curve位置から再開する。
+
+SUPER_STEADYではH2内のanimation bypassだけを、選択処理の同期scope中に解除する。touch/capabilityチェックや撮影可能な解像度・fps・録画stateは変えない。水平ロックも同じcategoryを使う。native ValueAnimator経路は開始時に同じ時間補正と加減速を適用し、native listenerの終了処理を保つ。純正カメラのアニメーションは独立設定に分離し、旧FPS設定から一度だけ初期値を移す。
+
+Expert RAWも同じ時間補正を使う。frameごとのcurve duration走査とRect生成を避ける。CameraとRAWの曲線cacheは取得時点のfirmwareを照合する。
+
+## 常時処理の軽量化
+
+プレビュー結果の追加hookは1つにまとめ、診断値とピント用sampleへ配る。通常のfps統計は200msごとのmetadata取得と5秒ごとの通知、flash用のmetadataは100msごとにし、保持に入った後のリクエスト制御は従来どおり行う。ズーム診断は1.5秒の窓だけを集計する。フィールド・メソッドの探索はClassValueでcacheし、Motionが繰り返し使うhandleは開始時に確保する。未使用のhook extra mapを遅延生成し、同じstatusのworker taskを重ねて送らない。CPU削減率はこれらの件数だけから推定しない。
+
+## 低負荷プレビュー
+
+vb.g.aでproducer bufferを選び、gd.i.pのPhoto deferred profileも同じ既存a2 enumへ合わせる。vb.g.aとvb.c.kのsetupのみをdeoptimizeする。logical 20のSurfaceTexture出力に存在し、同じ比率・短いframe durationを持つ最大1440px辺の候補を選ぶ。非対応時・前面・他モードではnativeのままにする。OFFは次回のカメラ初期化でnative profileへ戻る。
