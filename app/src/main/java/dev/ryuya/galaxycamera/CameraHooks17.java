@@ -15,7 +15,7 @@ final class CameraHooks17 {
   private final HostRuntime rt;
   private volatile WeakReference<Activity> activity = new WeakReference<>(null);
   private final ThreadLocal<Object> owner = new ThreadLocal<>();
-  private WeakReference<Object> previewMaker = new WeakReference<>(null);
+  private volatile WeakReference<Object> previewMaker = new WeakReference<>(null);
   private final Map<CaptureRequest.Builder, Integer> zoomCaptureIntents = new IdentityHashMap<>();
   private final Map<String, CameraCharacteristics> capabilities =
       new java.util.concurrent.ConcurrentHashMap<>();
@@ -128,7 +128,6 @@ final class CameraHooks17 {
                 if (preview == null) return;
                 Size size = (Size) Reflect.get(preview, "c");
                 if (!supportsPreview60(id, size)) return;
-                previewMaker = new WeakReference<>(maker);
                 eligiblePreviewSizes.put(id, size);
               }
               Object config = Reflect.get(p.args[0], "k");
