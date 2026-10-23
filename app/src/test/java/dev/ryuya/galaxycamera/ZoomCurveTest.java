@@ -6,35 +6,41 @@ import java.util.List;
 import org.junit.Test;
 
 public class ZoomCurveTest {
+  private final List<ZoomCurve.Point> curve =
+      List.of(
+          new ZoomCurve.Point(1f, 32), new ZoomCurve.Point(1.2f, 16), new ZoomCurve.Point(3f, 0));
+
   @Test
-  public void nativeTimingAndLensEndpointsArePreserved() {
-    var source =
-        List.of(
-            new ZoomCurve.Point(.5f, 32), new ZoomCurve.Point(1f, 16), new ZoomCurve.Point(3f, 0));
-    var result = ZoomCurve.atSixtyHz(source);
-    assertEquals(4, result.size());
-    assertEquals(.75f, result.get(1).zoom(), 0f);
-    assertEquals(.5f, result.get(0).zoom(), 0f);
-    assertEquals(32, source.get(0).delayMillis());
-    assertEquals(48, result.stream().mapToInt(ZoomCurve.Point::delayMillis).sum());
-    assertEquals(source.get(2), result.get(result.size() - 1));
-    assertTrue(result.stream().allMatch(point -> point.delayMillis() <= 17));
+  public void nativeEasingAndDurationArePreserved() {
+    assertEquals(48, ZoomCurve.duration(curve));
+    assertEquals(1.1f, ZoomCurve.valueAt(curve, 16), .0001f);
+    assertEquals(2.1f, ZoomCurve.valueAt(curve, 40), .0001f);
+    assertEquals(1f, ZoomCurve.valueAt(curve, -10), 0f);
+    assertEquals(3f, ZoomCurve.valueAt(curve, 1000), 0f);
   }
 
   @Test
-  public void reverseCurveRetainsDirectionWithoutOvershooting() {
-    var result =
-        ZoomCurve.atSixtyHz(List.of(new ZoomCurve.Point(5f, 33), new ZoomCurve.Point(1f, 0)));
-    assertEquals(3, result.size());
-    assertTrue(result.get(1).zoom() > 1 && result.get(1).zoom() < 5);
-    assertEquals(33, result.stream().mapToInt(ZoomCurve.Point::delayMillis).sum());
+  public void missedFramesSampleCurrentTimeWithoutReplayingOldSteps() {
+    assertEquals(2.55f, ZoomCurve.valueAt(curve, 44), .0001f);
+    assertEquals(2, ZoomCurve.nextIndex(curve, 44));
+    assertEquals(2, ZoomCurve.nextIndex(curve, 999));
   }
 
   @Test
-  public void invalidOrAlreadyFineGrainedCurvesAreUnchanged() {
-    var valid = List.of(new ZoomCurve.Point(1f, 16), new ZoomCurve.Point(3f, 0));
-    assertEquals(valid, ZoomCurve.atSixtyHz(valid));
-    var invalid = List.of(new ZoomCurve.Point(1f, -1), new ZoomCurve.Point(3f, 0));
-    assertSame(invalid, ZoomCurve.atSixtyHz(invalid));
+  public void reverseDirectionDoesNotOvershoot() {
+    var reverse = List.of(new ZoomCurve.Point(5f, 33), new ZoomCurve.Point(1f, 0));
+    assertEquals(33, ZoomCurve.duration(reverse));
+    assertTrue(ZoomCurve.valueAt(reverse, 16) > 1 && ZoomCurve.valueAt(reverse, 16) < 5);
+    assertEquals(1f, ZoomCurve.valueAt(reverse, 33), 0f);
+  }
+
+  @Test
+  public void invalidCurveIsRejectedBeforeTakingOverTheNativeRunner() {
+    assertEquals(
+        -1, ZoomCurve.duration(List.of(new ZoomCurve.Point(1f, -1), new ZoomCurve.Point(3f, 0))));
+    assertEquals(
+        -1,
+        ZoomCurve.duration(
+            List.of(new ZoomCurve.Point(Float.NaN, 16), new ZoomCurve.Point(3f, 0))));
   }
 }
