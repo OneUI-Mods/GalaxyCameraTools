@@ -37,4 +37,8 @@
   <string name="light_section">Ultra-wide light</string>
   <string name="light_title">Use light with the ultra-wide lens</string>
   <string name="light_summary">Allows Samsung Camera’s flash and video light with the rear ultra-wide lens. Native temperature and camera protections remain active. Force stop and reopen Camera after changing this option.</string>
+  <string name="focus_title">Hold focus during flash</string>
+  <string name="focus_summary">Keeps the focus distance measured just before the flash through the photo. Autofocus resumes after capture, cancellation or leaving Camera. Focus again before shooting when the subject moves.</string>
+  <string name="panel_light_title">Quick Panel flashlight in Camera</string>
+  <string name="panel_light_summary">Routes the Quick Panel flashlight to Samsung Camera while its rear preview is available. The light turns off when leaving Camera. Existing temperature and battery protections still apply.</string>
 </resources>

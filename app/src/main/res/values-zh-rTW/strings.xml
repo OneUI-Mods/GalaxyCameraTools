@@ -37,4 +37,8 @@
   <string name="light_section">超廣角照明</string>
   <string name="light_title">使用超廣角鏡頭時允許閃光燈</string>
   <string name="light_summary">允許在後置超廣角鏡頭中使用三星相機的閃光燈與影片照明。保留溫度等原有保護。變更後請強制停止相機並重新開啟。</string>
+  <string name="focus_title">閃光時鎖定對焦</string>
+  <string name="focus_summary">將閃光前的對焦距離保持到拍攝完成。拍攝完成、取消或離開相機後恢復自動對焦。拍攝對象移動後，請先重新對焦。</string>
+  <string name="panel_light_title">在相機中使用快捷面板手電筒</string>
+  <string name="panel_light_summary">後置相機預覽可用時，將快捷面板的手電筒操作交給三星相機。離開相機後關閉。保留溫度及電量保護。</string>
 </resources>

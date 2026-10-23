@@ -52,6 +52,7 @@ public final class HookEntry extends XposedModule {
                 new AssistantUi17(rt).install();
               else if (name.equals(ConfigProvider.EXPERT) && "6.0.02.8".equals(version))
                 new ExpertRawHooks17(rt).install();
+              else if (name.equals(ConfigProvider.SYSTEM_UI)) new QuickPanelLight17(rt).install();
               else rt.report("UNSUPPORTED: application version " + version);
             } catch (Throwable e) {
               if (runtime != null) runtime.fail(e);

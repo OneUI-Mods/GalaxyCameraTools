@@ -96,6 +96,8 @@ final class CameraHooks17 {
         });
     new VideoModes17(rt, this).install();
     new UltraWideLight17(rt).install();
+    new FlashFocus17(rt, this).install();
+    new CameraPanelLight17(rt).install();
     rt.ready();
   }
 
@@ -117,6 +119,16 @@ final class CameraHooks17 {
     return (int)
         Reflect.method(settings.getClass(), "d", settingsKey)
             .invoke(settings, Reflect.value(settingsKey, "BACK_CAMCORDER_RESOLUTION"));
+  }
+
+  boolean busy() {
+    try {
+      Activity a = activity.get();
+      Object engine = a == null ? null : Reflect.get(a, "n");
+      return engine != null && !"IDLE".equals(String.valueOf(Reflect.get(engine, "C")));
+    } catch (ReflectiveOperationException ignored) {
+      return true;
+    }
   }
 
   void restoreNormalVideoSelection(Class<?> resolution) throws ReflectiveOperationException {

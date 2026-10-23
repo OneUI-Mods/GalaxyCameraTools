@@ -37,4 +37,8 @@
   <string name="light_section">超広角のライト</string>
   <string name="light_title">超広角でもライトを使用</string>
   <string name="light_summary">背面の超広角レンズでも、純正カメラのフラッシュと動画ライトを使えるようにします。温度などの純正の保護は維持します。変更後はカメラを強制停止して開き直してください。</string>
+  <string name="focus_title">フラッシュ中はピントを固定</string>
+  <string name="focus_summary">フラッシュ直前のピント位置を撮影まで維持します。撮影終了・キャンセル・カメラを離れた時にオートフォーカスへ戻します。被写体が動いた場合は、撮影前にピントを合わせ直してください。</string>
+  <string name="panel_light_title">カメラ使用中もクイックパネルのライトを使う</string>
+  <string name="panel_light_summary">背面カメラのプレビュー中は、クイックパネルのライト操作を純正カメラへ受け渡します。カメラを離れると消灯します。温度・電池残量の保護は維持します。</string>
 </resources>

@@ -32,7 +32,7 @@ def validate(apk, tools):
         if archive.read(meta + 'java_init.list').decode().strip() != 'dev.ryuya.galaxycamera.HookEntry':
             raise RuntimeError('Unexpected module entry')
         scope = set(archive.read(meta + 'scope.list').decode().splitlines())
-        if scope != {'com.sec.android.app.camera', 'com.samsung.android.app.cameraassistant', 'com.samsung.android.app.galaxyraw'}:
+        if scope != {'com.sec.android.app.camera', 'com.samsung.android.app.cameraassistant', 'com.samsung.android.app.galaxyraw', 'com.android.systemui'}:
             raise RuntimeError('Unexpected module scope')
         if 'assets/xposed_init' in archive.namelist():
             raise RuntimeError('Legacy entry is not supported')

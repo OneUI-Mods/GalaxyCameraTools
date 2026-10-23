@@ -8,15 +8,19 @@ import java.util.Set;
 
 /** Only our UI and the scoped Camera Assistant may change settings. */
 public final class ConfigProvider extends ContentProvider {
+  static final String SYSTEM_UI = "com.android.systemui";
+  private final CameraLightRelay lightRelay = new CameraLightRelay();
   static final String CAMERA = "com.sec.android.app.camera";
   static final String ASSISTANT = "com.samsung.android.app.cameraassistant";
   static final String EXPERT = "com.samsung.android.app.galaxyraw";
   static final String FPS = "photo_preview_60",
       VIDEO = "video_120",
       ANIMATION = "expert_lens_animation",
-      LIGHT = "ultra_wide_light";
-  static final Set<String> HOSTS = Set.of(CAMERA, ASSISTANT, EXPERT);
-  static final String[] KEYS = {FPS, VIDEO, ANIMATION, LIGHT};
+      LIGHT = "ultra_wide_light",
+      FOCUS = "flash_focus_hold",
+      PANEL_LIGHT = "camera_quick_panel_light";
+  static final Set<String> HOSTS = Set.of(CAMERA, ASSISTANT, EXPERT, SYSTEM_UI);
+  static final String[] KEYS = {FPS, VIDEO, ANIMATION, LIGHT, FOCUS, PANEL_LIGHT};
   static final Uri URI = Uri.parse("content://dev.ryuya.galaxycamera.config");
 
   public boolean onCreate() {
@@ -41,6 +45,23 @@ public final class ConfigProvider extends ContentProvider {
   public Bundle call(String method, String arg, Bundle input) {
     String who = caller();
     var prefs = getContext().getSharedPreferences("settings", 0);
+    if ("light_read".equals(method)) return lightRelay.state(prefs.getBoolean(PANEL_LIGHT, false));
+    if ("light_state".equals(method)) {
+      if (!CAMERA.equals(who) || input == null) throw new SecurityException("Camera only");
+      if (lightRelay.update(input))
+        getContext().getContentResolver().notifyChange(CameraLightRelay.STATE_URI, null);
+      return lightRelay.state(prefs.getBoolean(PANEL_LIGHT, false));
+    }
+    if ("light_request".equals(method)) {
+      if (!SYSTEM_UI.equals(who) || input == null) throw new SecurityException("SystemUI only");
+      boolean accepted =
+          lightRelay.request(input.getBoolean("enabled"), prefs.getBoolean(PANEL_LIGHT, false));
+      if (accepted)
+        getContext().getContentResolver().notifyChange(CameraLightRelay.COMMAND_URI, null);
+      Bundle result = new Bundle();
+      result.putBoolean("accepted", accepted);
+      return result;
+    }
     if ("set".equals(method)) {
       if ((!who.equals(BuildConfig.APPLICATION_ID) && !who.equals(ASSISTANT)) || input == null)
         throw new SecurityException("UI only");

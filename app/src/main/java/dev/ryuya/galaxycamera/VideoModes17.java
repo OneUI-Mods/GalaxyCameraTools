@@ -9,6 +9,7 @@ final class VideoModes17 {
   private final CameraHooks17 camera;
   private Class<?> resolution, commands, setting, features;
   private Object uhd, uhdCommand, backSetting;
+  private final ThreadLocal<Boolean> rawSelection = new ThreadLocal<>();
 
   VideoModes17(HostRuntime runtime, CameraHooks17 hooks) {
     rt = runtime;
@@ -33,6 +34,49 @@ final class VideoModes17 {
             if (p.hasThrowable()) return;
             try {
               camera.restoreNormalVideoSelection(resolution);
+            } catch (Throwable error) {
+              rt.fail(error);
+            }
+          }
+        });
+    // Normalize a saved module-only choice before native session setup reads it.
+    // onResume alone runs too late: engine initialization already consumed it.
+    ModernHook.findAndHookMethod(
+        Class.forName("vc.j", false, l),
+        "d",
+        setting,
+        new ModernHook.Callback() {
+          protected void afterHookedMethod(ModernHook.Param p) {
+            if (p.hasThrowable()
+                || p.args[0] != backSetting
+                || Boolean.TRUE.equals(rawSelection.get())
+                || !rt.available()
+                || rt.configured(ConfigProvider.VIDEO)
+                || camera.busy()) return;
+            try {
+              Object selected =
+                  Reflect.method(resolution, "j", int.class).invoke(null, p.getResult());
+              String name = selected.toString();
+              if (!Set.of("RESOLUTION_1920X1080_120FPS", "RESOLUTION_3840X2160_120FPS")
+                  .contains(name)) return;
+              Object fallback = Reflect.value(resolution, name.replace("_120FPS", ""));
+              int value = (int) Reflect.call(fallback, "e");
+              p.setResult(value);
+              Object settings = p.thisObject;
+              rt.main.post(
+                  () -> {
+                    if (rt.configured(ConfigProvider.VIDEO) || camera.busy()) return;
+                    rawSelection.set(true);
+                    try {
+                      Reflect.method(settings.getClass(), "V", int.class, setting)
+                          .invoke(settings, value, backSetting);
+                      rt.report("VIDEO: disabled; restored native 30 fps selection");
+                    } catch (Throwable error) {
+                      rt.fail(error);
+                    } finally {
+                      rawSelection.remove();
+                    }
+                  });
             } catch (Throwable error) {
               rt.fail(error);
             }

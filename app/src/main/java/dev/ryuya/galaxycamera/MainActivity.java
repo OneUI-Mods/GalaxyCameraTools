@@ -58,6 +58,12 @@ public final class MainActivity extends AppCompatActivity {
         com.google.android.material.R.style.TextAppearance_Material3_BodyMedium);
     section(camera, R.string.light_section);
     toggle(camera, ConfigProvider.LIGHT, R.string.light_title, R.string.light_summary);
+    toggle(camera, ConfigProvider.FOCUS, R.string.focus_title, R.string.focus_summary);
+    toggle(
+        camera,
+        ConfigProvider.PANEL_LIGHT,
+        R.string.panel_light_title,
+        R.string.panel_light_summary);
     text(
         camera,
         R.string.apply_hint,
