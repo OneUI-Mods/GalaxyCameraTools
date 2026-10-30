@@ -33,3 +33,5 @@ Android SDKのコンパイル対象は37です。JDK・Gradle・依存関係の�
 Camera2の追加レンズはVectorが選択したクライアントのプロセス内で扱います。共有の権限判定やcameraserverのバイナリは変更しません。入力したphysical camera IDは、サービスへの接続では親のlogical camera IDへ戻し、出力のコピーへphysical IDを付けます。アプリの公開device IDとnative requestのlogical IDを混同しないように分けています。API1や未確認のセッション方式への互換性は保証しません。
 
 署名・ソースZIP・SHA-256の作成は`tools/package_release.py --source-ref HEAD`を使います。検証は`:app:testDebugUnitTest :app:lintRelease`です。検証用APKは別プロジェクトとし、配布APKにActivityやバイナリを混入させません。
+
+- [Kotlin移行の設計と検証範囲](kotlin-migration.md)
