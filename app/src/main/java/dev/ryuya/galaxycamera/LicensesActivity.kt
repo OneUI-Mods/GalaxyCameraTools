@@ -216,7 +216,7 @@ class LicensesActivity : AppCompatActivity() {
 
                 override fun getView(
                     p: Int,
-                    recycled: View,
+                    recycled: View?,
                     parent: ViewGroup?,
                 ): View {
                     val item = visible.get(p)
