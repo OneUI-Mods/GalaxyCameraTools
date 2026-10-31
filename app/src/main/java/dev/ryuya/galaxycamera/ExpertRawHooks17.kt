@@ -3,13 +3,10 @@ package dev.ryuya.galaxycamera
 import android.app.Activity
 import android.graphics.Rect
 import android.os.Looper
-import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
-import java.lang.reflect.Proxy
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Supplier
 import kotlin.jvm.JvmField
-import kotlin.jvm.JvmStatic
 import kotlin.math.log
 
 /* Reuses Expert RAW's own snapshot, blur and first-preview-frame handoff. */
@@ -264,20 +261,7 @@ class ExpertRawHooks17(runtime: HostRuntime) {
         val next = Pending(engine, cameraId, context, layer, oldCameraId)
         pending = next
         val callback =
-            Proxy.newProxyInstance(
-                rt.loader,
-                arrayOf<Class<*>?>(callbackType),
-                InvocationHandler { proxy: Any?, method: Method?, args: Array<Any?>? ->
-                    if (method!!.getDeclaringClass() == Any::class.java)
-                        return@InvocationHandler ExpertRawHooks17.objectMethod(
-                            proxy,
-                            method!!,
-                            args!!,
-                        )
-                    if (method!!.getName() == "onPreviewSnapshotShow") next.finish(true)
-                    null
-                },
-            )
+            SnapshotCallback.create(rt.loader, callbackType!!, Runnable { next.finish(true) })
         try {
             rt.main.postDelayed(next.timeout, 600)
             if (adoptSnapshot) {
@@ -398,14 +382,5 @@ class ExpertRawHooks17(runtime: HostRuntime) {
 
     companion object {
         private const val BASE: String = "com.samsung.android.app.galaxyraw."
-
-        @JvmStatic
-        private fun objectMethod(proxy: Any?, method: Method, args: Array<Any?>): Any? {
-            return when (method.getName()) {
-                "equals" -> proxy === args[0]
-                "hashCode" -> System.identityHashCode(proxy)
-                else -> "Galaxy Camera Tools snapshot callback"
-            }
-        }
     }
 }

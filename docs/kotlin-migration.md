@@ -40,3 +40,13 @@ Google APIsのarm64エミュレータ、Android 16（API 36）とAndroid 17（AP
 Camera Assistantのみをアプリ再起動し、純正設定内のGalaxy Camera Tools項目の表示を確認しました。設定値を変更せず、カメラでの撮影・fps・切り替えアニメーションの測定は行っていません。
 
 今回のGUI確認中はOS・system_server・SystemUIを再起動せず、録画開始・音声再生も行っていません。初期のビルド確認や先行するSystemUIの読み込み直しとは別の確認段階です。画面が表示できることだけで全機能を確認済みとは扱いません。Android 16はエミュレータと既存契約までで、Android 16実機の再試験は行っていません。
+
+## 2026-10-31 実行時の意味の再照合（0.1.5-experimental）
+
+元のJavaソースとの照合で以下を修正した。
+
+- Camera2のメタデータ用キー3か所で、Integer.class / Float.classがKotlinのprimitive Classへ変わっていた。CameraMetadataTypesでboxed Classを明示し、フラッシュのレンズ位置、熱情報、ズーム比の型を元へ戻した。
+- Expert RAWのスナップショット通知proxyで、引数なしのtoString/hashCodeに渡されるnullのargs配列を強制展開していた。Android依存のないSnapshotCallbackを実際のproxy生成に使い、Objectメソッドと本来の通知を分離した。
+- PhotoZoomTiming17からpreviewSurface()の正常なnullをコンストラクタへ渡す前に強制展開していた。コンストラクタがIllegalArgumentExceptionを返して既存の純正フォールバックへ進む元の経路を復元した。
+
+型契約2件・実proxy呼び出し4件の回帰テストを追加。撮影画像や音声を使わないAndroid16/17上の検証と、実機での読み込み確認は、署名済み配布版の完成後に追記する。全撮影モード・fpsの測定はこの静的照合だけでは確認できない。

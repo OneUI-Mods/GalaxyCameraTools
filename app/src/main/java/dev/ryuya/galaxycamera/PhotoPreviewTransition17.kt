@@ -345,6 +345,6 @@ class PhotoPreviewTransition17(
 
     companion object {
         private val ZOOM: Key<Float?> =
-            Key<Float?>("samsung.android.scaler.zoomRatio", Float::class.java)
+            Key<Float?>("samsung.android.scaler.zoomRatio", CameraMetadataTypes.float)
     }
 }

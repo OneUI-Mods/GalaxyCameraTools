@@ -351,7 +351,7 @@ class PhotoZoomTiming17(runtime: HostRuntime, camera: CameraHooks17) {
                     display =
                         PhotoPreviewTransition17(
                             runtime,
-                            camera.previewSurface()!!,
+                            camera.previewSurface(),
                             curve.get(0)!!.zoom,
                             curve.get(curve.size - 1)!!.zoom,
                             Runnable {

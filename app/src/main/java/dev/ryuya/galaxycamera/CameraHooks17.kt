@@ -581,6 +581,6 @@ class CameraHooks17(runtime: HostRuntime) {
     companion object {
         private val PREVIEW_60: Range<Int> = Range<Int>(60, 60)
         private val CAMERA_HEAT: Key<Int?> =
-            Key<Int?>("samsung.android.control.overHeatHint", Int::class.java)
+            Key<Int?>("samsung.android.control.overHeatHint", CameraMetadataTypes.integer)
     }
 }

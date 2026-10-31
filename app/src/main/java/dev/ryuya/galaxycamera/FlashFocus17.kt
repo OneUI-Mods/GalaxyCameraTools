@@ -27,7 +27,7 @@ class FlashFocus17(runtime: HostRuntime, hooks: CameraHooks17) {
     private val nativeLensPositionResult: android.hardware.camera2.CaptureResult.Key<Int?> =
         android.hardware.camera2.CaptureResult.Key<Int?>(
             "samsung.android.lens.focusLensPos",
-            Int::class.java,
+            CameraMetadataTypes.integer,
         )
     private val nativeLensInfo: android.hardware.camera2.CaptureResult.Key<IntArray?> =
         android.hardware.camera2.CaptureResult.Key<IntArray?>(
