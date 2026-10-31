@@ -454,5 +454,21 @@
     "asset": "legal/APACHE-2.0.txt",
     "notice": "legal/LIBXPOSED-NOTICE.txt",
     "reference": true
+  },
+  {
+    "id": "io.github.libxposed:service",
+    "title": "libxposed service",
+    "version": "102.0.0",
+    "license": "Apache-2.0",
+    "asset": "legal/APACHE-2.0.txt",
+    "notice": "libxposed contributors. https://github.com/JingMatrix/libxposed-service"
+  },
+  {
+    "id": "io.github.libxposed:interface",
+    "title": "libxposed interface",
+    "version": "102.0.0",
+    "license": "Apache-2.0",
+    "asset": "legal/APACHE-2.0.txt",
+    "notice": "libxposed contributors. https://github.com/JingMatrix/libxposed-service"
   }
 ]
