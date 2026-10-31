@@ -344,16 +344,8 @@ class VideoModes17(runtime: HostRuntime, hooks: CameraHooks17) {
         val raw = Reflect.method(features!!, "a", resolution)!!.invoke(null, value)
         if (raw !is MutableMap<*, *> || !raw.get("value").toString().toBoolean()) return false
         val modes = raw.get("supported-mode").toString()
-        return Arrays.asList<String?>(
-                *modes.split("\\s*,\\s*".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-            )
+        return Arrays.asList<String?>(*TextCompatibility.split(modes, "\\s*,\\s*"))
             .contains("pro_video") ||
-            Arrays.asList<String?>(
-                    *modes
-                        .split("\\s*,\\s*".toRegex())
-                        .dropLastWhile { it.isEmpty() }
-                        .toTypedArray()
-                )
-                .contains("video")
+            Arrays.asList<String?>(*TextCompatibility.split(modes, "\\s*,\\s*")).contains("video")
     }
 }

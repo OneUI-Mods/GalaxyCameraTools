@@ -192,7 +192,7 @@ class LicensesActivity : AppCompatActivity() {
     }
 
     private fun filter() {
-        val needle = query.trim().lowercase()
+        val needle = TextCompatibility.strip(query).lowercase()
         val visible = ArrayList<LicensesActivity.Library>()
         for (item in libraries) if (
             (title(item) + " " + item.id + " " + version(item) + " " + item.license)
@@ -228,8 +228,8 @@ class LicensesActivity : AppCompatActivity() {
                     body.addView(text(title(item), true))
                     val description =
                         text(
-                            (if (version(item).isBlank()) "" else version(item) + " · ") +
-                                item.license,
+                            (if (TextCompatibility.isBlank(version(item))) ""
+                            else version(item) + " · ") + item.license,
                             false,
                         )
                     body.addView(description)
