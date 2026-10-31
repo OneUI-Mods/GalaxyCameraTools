@@ -7,8 +7,8 @@ android {
         applicationId = "dev.ryuya.galaxycamera"
         minSdk = 36
         targetSdk = 37
-        versionCode = 4
-        versionName = "0.1.3-experimental"
+        versionCode = 6
+        versionName = "0.1.5-experimental"
     }
     buildFeatures { buildConfig = true }
     buildTypes { release { isDebuggable = false; isMinifyEnabled = false } }
@@ -19,6 +19,8 @@ android {
     lint { abortOnError = true }
 }
 dependencies {
+    implementation("io.github.libxposed:service:102.0.0")
+
     implementation("com.google.android.material:material:1.14.0")
     compileOnly("io.github.libxposed:api:102.0.0")
     testImplementation("junit:junit:4.13.2")
