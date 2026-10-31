@@ -42,6 +42,10 @@ def validate(apk, tools):
                 if b'Lde/robv/android/xposed/' in data or b'Ldev/ryuya/galaxycamera/fixtures/' in data:
                     raise RuntimeError('Legacy API or test fixture in release')
     manifest = run(tools / 'aapt2', 'dump', 'xmltree', apk, '--file', 'AndroidManifest.xml', capture=True).stdout
+    if ("io.github.libxposed.service.XposedProvider" not in manifest
+            or "dev.ryuya.galaxycamera.XposedService" not in manifest):
+        raise RuntimeError("Missing official API 102 app-side Binder provider")
+
     if any(word in manifest.lower() for word in ['fixture', 'probeactivity', 'testactivity', 'instrumentation']):
         raise RuntimeError('Refusing a test-fixture APK')
 
