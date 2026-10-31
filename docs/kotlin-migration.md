@@ -50,3 +50,10 @@ Camera Assistantのみをアプリ再起動し、純正設定内のGalaxy Camera
 - PhotoZoomTiming17からpreviewSurface()の正常なnullをコンストラクタへ渡す前に強制展開していた。コンストラクタがIllegalArgumentExceptionを返して既存の純正フォールバックへ進む元の経路を復元した。
 
 型契約2件・実proxy呼び出し4件の回帰テストを追加。撮影画像や音声を使わないAndroid16/17上の検証と、実機での読み込み確認は、署名済み配布版の完成後に追記する。全撮影モード・fpsの測定はこの静的照合だけでは確認できない。
+
+### 修正版の検証結果
+
+- Camera ToolsのJVM試験28件（新規6件）、release Lint、依存ライセンス57件の照合、署名・16KiBアライメント・配布構造検査が成功。
+- Android16（API36）とAndroid17（API37）の専用エミュレータで、署名済みrelease APKのクラスを隔離したapp_processから直接読み込んだ。Camera2の実Key生成、実proxyの引数なしObjectメソッドと通知、プレビューnull時にIllegalArgumentExceptionへ戻るコンストラクタ経路を両方で確認した。検証DEXは配布APKへ入れていない。
+- Android17のGalaxyへ同じ署名のreleaseを上書きし、インストール済みAPKのSHA-256が配布APKと一致した。純正カメラ、Expert RAW、Camera Assistantだけを読み込み直し、設定接続・写真プレビューのfps要求・熱情報取得・READY状態を確認。設定差分0、3ホストともクラッシュ保護非停止・クラッシュ回数0。OS/system_server/SystemUIは再起動せず、撮影・録画・音声再生は行っていない。
+- 全16アプリのrelease組み立て・Lintと、合計578件のJVM試験が成功。元のJavaのnullable return・boxed Class・proxy・JNI等を再照合した追加の確定修正は本アプリの5か所。全撮影モードのfps、映像の自然さ、音声入出力、Android16のSamsung実機動作は今回未測定。
