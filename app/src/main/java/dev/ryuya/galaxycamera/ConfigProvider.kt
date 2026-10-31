@@ -65,7 +65,7 @@ class ConfigProvider : ContentProvider() {
         if ("zoom_curves_publish" == method) {
             if (ConfigProvider.CAMERA != who) throw SecurityException("Camera only")
             try {
-                StockZoomCurves.decode(arg!!)
+                StockZoomCurves.decode(arg)
             } catch (error: JSONException) {
                 throw IllegalArgumentException("Invalid zoom curves", error)
             }

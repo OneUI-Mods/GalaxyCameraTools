@@ -7,8 +7,8 @@ android {
         applicationId = "dev.ryuya.galaxycamera"
         minSdk = 36
         targetSdk = 37
-        versionCode = 6
-        versionName = "0.1.5-experimental"
+        versionCode = 7
+        versionName = "0.1.6-experimental"
     }
     buildFeatures { buildConfig = true }
     buildTypes { release { isDebuggable = false; isMinifyEnabled = false } }
