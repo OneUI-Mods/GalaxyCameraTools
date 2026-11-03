@@ -1,12 +1,13 @@
 package dev.ryuya.galaxycamera.compat
 
 internal object DexKitConfig {
-    const val SCHEMA = 1
+    const val SCHEMA = 2
     const val MODULE_ID = "dev.ryuya.galaxycamera"
     val MODULE_VERSION
         get() = dev.ryuya.galaxycamera.BuildConfig.VERSION_CODE
 
     const val PROFILE_HASH = "587bc4d283aa5e846305d8a25da395f5c68650d83573c0136d540876cea939ae"
+    val FEATURE_PREFIXES = setOf<String>()
     val TARGETS =
         setOf(
             "com.android.systemui",
@@ -23,6 +24,17 @@ internal object DexKitConfig {
         )
     val CLASSES_BY_TARGET =
         mapOf(
+            "com.android.systemui" to
+                listOf(
+                    "androidx.preference.Preference",
+                    "androidx.preference.Preference\$OnPreferenceChangeListener",
+                    "androidx.preference.PreferenceCategory",
+                    "com.android.systemui.animation.Expandable",
+                    "com.android.systemui.plugins.qs.QSTile\$State",
+                    "com.android.systemui.qs.tiles.FlashlightTile",
+                    "com.android.systemui.statusbar.policy.FlashlightControllerImpl",
+                    "com.android.systemui.statusbar.policy.SecFlashlightControllerImpl",
+                ),
             "com.samsung.android.app.galaxyraw" to
                 listOf(
                     "androidx.preference.Preference",
@@ -445,17 +457,6 @@ internal object DexKitConfig {
                     "zi.f",
                     "zi.g",
                 ),
-            "com.android.systemui" to
-                listOf(
-                    "androidx.preference.Preference",
-                    "androidx.preference.Preference\$OnPreferenceChangeListener",
-                    "androidx.preference.PreferenceCategory",
-                    "com.android.systemui.animation.Expandable",
-                    "com.android.systemui.plugins.qs.QSTile\$State",
-                    "com.android.systemui.qs.tiles.FlashlightTile",
-                    "com.android.systemui.statusbar.policy.FlashlightControllerImpl",
-                    "com.android.systemui.statusbar.policy.SecFlashlightControllerImpl",
-                ),
             "com.samsung.android.app.cameraassistant" to
                 listOf(
                     "a5.b",
@@ -516,9 +517,9 @@ internal object DexKitConfig {
         )
     val KNOWN_VERSIONS =
         mapOf(
+            "com.android.systemui" to setOf(36L, 37L),
             "com.samsung.android.app.galaxyraw" to setOf(600208222L),
             "com.sec.android.app.camera" to setOf(1700043000L),
-            "com.android.systemui" to setOf(36L, 37L),
             "com.samsung.android.app.cameraassistant" to setOf(500007000L),
         )
     val PROFILE_PACKAGES =
