@@ -3,6 +3,7 @@ package dev.ryuya.galaxycamera
 import android.app.Activity
 import android.graphics.Rect
 import android.os.Looper
+import dev.ryuya.galaxycamera.compat.DexSymbols
 import java.lang.reflect.Method
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Supplier
@@ -32,28 +33,29 @@ class ExpertRawHooks17(runtime: HostRuntime) {
     @Throws(Exception::class)
     fun install() {
         val l = rt.loader
-        val engine = Class.forName(ExpertRawHooks17.BASE + "engine.CommonEngine", false, l)
+        val engine = DexSymbols.findClass(ExpertRawHooks17.BASE + "engine.CommonEngine", false, l)
         val animation =
-            Class.forName(
+            DexSymbols.findClass(
                 ExpertRawHooks17.BASE + "layer.previewanimation.PreviewAnimationLayerView",
                 false,
                 l,
             )
         animationType =
-            Class.forName(
+            DexSymbols.findClass(
                 ExpertRawHooks17.BASE +
                     "interfaces.PreviewAnimationLayerManager\$PreviewAnimationType",
                 false,
                 l,
             )
         callbackType =
-            Class.forName(
+            DexSymbols.findClass(
                 ExpertRawHooks17.BASE +
                     "interfaces.PreviewAnimationLayerManager\$PreviewSnapshotEventListener",
                 false,
                 l,
             )
-        engineState = Class.forName(ExpertRawHooks17.BASE + "interfaces.Engine\$State", false, l)
+        engineState =
+            DexSymbols.findClass(ExpertRawHooks17.BASE + "interfaces.Engine\$State", false, l)
         previewChange = Reflect.value(animationType, "PREVIEW_CHANGE")
         previewing = Reflect.value(engineState, "PREVIEWING")
         request =
@@ -66,7 +68,7 @@ class ExpertRawHooks17(runtime: HostRuntime) {
             )
         switchCamera = Reflect.method(engine, "switchCamera", Int::class.javaPrimitiveType)
         val presenter =
-            Class.forName(
+            DexSymbols.findClass(
                 ExpertRawHooks17.BASE + "shootingmode.abstraction.AbstractShootingModePresenter",
                 false,
                 l,
@@ -97,15 +99,20 @@ class ExpertRawHooks17(runtime: HostRuntime) {
         )
         ModernHook.deoptimize(
             Reflect.method(
-                Class.forName(ExpertRawHooks17.BASE + "shootingmode.pro.ProPresenter", false, l),
+                DexSymbols.findClass(
+                    ExpertRawHooks17.BASE + "shootingmode.pro.ProPresenter",
+                    false,
+                    l,
+                ),
                 "handleLensTypeChanged",
                 Int::class.javaPrimitiveType,
                 Int::class.javaPrimitiveType,
             )!!
         )
-        val pro = Class.forName(ExpertRawHooks17.BASE + "shootingmode.pro.ProPresenter", false, l)
+        val pro =
+            DexSymbols.findClass(ExpertRawHooks17.BASE + "shootingmode.pro.ProPresenter", false, l)
         val settingKey =
-            Class.forName(ExpertRawHooks17.BASE + "interfaces.CameraSettings\$Key", false, l)
+            DexSymbols.findClass(ExpertRawHooks17.BASE + "interfaces.CameraSettings\$Key", false, l)
         for (caller in
             arrayOf<Method?>(
                 Reflect.method(
@@ -123,7 +130,7 @@ class ExpertRawHooks17(runtime: HostRuntime) {
                     Int::class.javaPrimitiveType,
                 ),
                 Reflect.method(
-                    Class.forName(ExpertRawHooks17.BASE + "shootingmode.pro.j", false, l),
+                    DexSymbols.findClass(ExpertRawHooks17.BASE + "shootingmode.pro.j", false, l),
                     "onCameraSettingChanged",
                     settingKey,
                     Int::class.javaPrimitiveType,
@@ -183,7 +190,7 @@ class ExpertRawHooks17(runtime: HostRuntime) {
                 }
             },
         )
-        val raw = Class.forName(ExpertRawHooks17.BASE + "GalaxyRaw", false, l)
+        val raw = DexSymbols.findClass(ExpertRawHooks17.BASE + "GalaxyRaw", false, l)
         ModernHook.findAndHookMethod(
             raw,
             "onPause",

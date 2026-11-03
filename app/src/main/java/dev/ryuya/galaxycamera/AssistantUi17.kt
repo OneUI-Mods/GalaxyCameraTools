@@ -3,6 +3,8 @@ package dev.ryuya.galaxycamera
 import android.content.Context
 import android.os.Bundle
 import android.util.AttributeSet
+import dev.ryuya.galaxycamera.compat.DexSymbols
+import dev.ryuya.galaxycamera.compat.compatibleName
 import java.lang.ref.WeakReference
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
@@ -29,11 +31,15 @@ class AssistantUi17(runtime: HostRuntime) {
     @Throws(Exception::class)
     fun install() {
         val l = rt.loader
-        preference = Class.forName("androidx.preference.Preference", false, l)
-        category = Class.forName("androidx.preference.PreferenceCategory", false, l)
+        preference = DexSymbols.findClass("androidx.preference.Preference", false, l)
+        category = DexSymbols.findClass("androidx.preference.PreferenceCategory", false, l)
         changeListener =
-            Class.forName("androidx.preference.Preference\$OnPreferenceChangeListener", false, l)
-        val fragment = Class.forName("com.samsung.android.app.cameraassistant.a1", false, l)
+            DexSymbols.findClass(
+                "androidx.preference.Preference\$OnPreferenceChangeListener",
+                false,
+                l,
+            )
+        val fragment = DexSymbols.findClass("com.samsung.android.app.cameraassistant.a1", false, l)
         for (method in arrayOf<String>("onResume", "i")) ModernHook.findAndHookMethod(
             fragment,
             method,
@@ -99,7 +105,7 @@ class AssistantUi17(runtime: HostRuntime) {
         val created = State(screen)
         states.put(fragment, created)
         val nativeSwitch =
-            Class.forName(
+            DexSymbols.findClass(
                 "com.samsung.android.app.cameraassistant.CameraSwitchPreference",
                 false,
                 rt.loader,
@@ -152,13 +158,13 @@ class AssistantUi17(runtime: HostRuntime) {
                     arrayOf<Class<*>?>(changeListener),
                     InvocationHandler { proxy: Any?, method: Method?, args: Array<Any?>? ->
                         if (method!!.getDeclaringClass() == Any::class.java)
-                            return@InvocationHandler when (method!!.getName()) {
+                            return@InvocationHandler when (method!!.compatibleName()) {
                                 "equals" -> proxy === args!![0]
                                 "hashCode" -> System.identityHashCode(proxy)
                                 else -> "Galaxy Camera Tools preference"
                             }
                         val patternPrefix0 =
-                            method!!.getName() != "onPreferenceChange" ||
+                            method!!.compatibleName() != "onPreferenceChange" ||
                                 args == null ||
                                 args.size != 2
                         val value = if (!patternPrefix0) args[1] as? Boolean else null

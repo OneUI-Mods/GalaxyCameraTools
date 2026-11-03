@@ -6,6 +6,7 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.util.Size
+import dev.ryuya.galaxycamera.compat.DexSymbols
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.log
 
@@ -22,8 +23,8 @@ class PhotoPreviewStream17(runtime: HostRuntime, camera: CameraHooks17) {
 
     @Throws(Exception::class)
     fun install() {
-        val surfaceManager = Class.forName("vb.g", false, runtime.loader)
-        val resolution = Class.forName("l9.a2", false, runtime.loader)
+        val surfaceManager = DexSymbols.findClass("vb.g", false, runtime.loader)
+        val resolution = DexSymbols.findClass("l9.a2", false, runtime.loader)
         ModernHook.deoptimize(
             Reflect.method(
                 surfaceManager,
@@ -34,7 +35,7 @@ class PhotoPreviewStream17(runtime: HostRuntime, camera: CameraHooks17) {
         )
         ModernHook.deoptimize(
             Reflect.method(
-                Class.forName("vb.c", false, runtime.loader),
+                DexSymbols.findClass("vb.c", false, runtime.loader),
                 "k",
                 Rect::class.java,
                 resolution,
@@ -42,7 +43,7 @@ class PhotoPreviewStream17(runtime: HostRuntime, camera: CameraHooks17) {
         )
         // Photo's deferred-surface profile otherwise replaces the chosen dimensions with 1920x1440.
         ModernHook.findAndHookMethod(
-            Class.forName("gd.i", false, runtime.loader),
+            DexSymbols.findClass("gd.i", false, runtime.loader),
             "p",
             object : ModernHook.Callback() {
                 override fun afterHookedMethod(call: ModernHook.Param) {

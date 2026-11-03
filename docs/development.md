@@ -35,3 +35,5 @@ Camera2の追加レンズはVectorが選択したクライアントのプロセ�
 署名・ソースZIP・SHA-256の作成は`tools/package_release.py --source-ref HEAD`を使います。検証は`:app:testDebugUnitTest :app:lintRelease`です。検証用APKは別プロジェクトとし、配布APKにActivityやバイナリを混入させません。
 
 - [Kotlin移行の設計と検証範囲](kotlin-migration.md)
+
+- [探索・保存・更新時の互換性](dexkit-compatibility.md)

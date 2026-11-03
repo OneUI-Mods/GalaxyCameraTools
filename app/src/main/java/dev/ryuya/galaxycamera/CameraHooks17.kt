@@ -20,6 +20,7 @@ import android.util.Pair
 import android.util.Range
 import android.util.Size
 import android.view.SurfaceView
+import dev.ryuya.galaxycamera.compat.DexSymbols
 import io.github.libxposed.api.XposedInterface.Chain
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
@@ -96,11 +97,11 @@ class CameraHooks17(runtime: HostRuntime) {
     @Throws(Exception::class)
     fun install() {
         val l = rt.loader
-        val camera = Class.forName("com.sec.android.app.camera.Camera", false, l)
-        settingsKey = Class.forName("l9.f0", false, l)
+        val camera = DexSymbols.findClass("com.sec.android.app.camera.Camera", false, l)
+        settingsKey = DexSymbols.findClass("l9.f0", false, l)
         modeKey = Reflect.value(settingsKey, "MODE_CUSTOM_SETTING")
         cameraSettings = Reflect.field(camera, "j")
-        readMode = Reflect.method(Class.forName("vc.j", false, l), "x", settingsKey)
+        readMode = Reflect.method(DexSymbols.findClass("vc.j", false, l), "x", settingsKey)
         ModernHook.findAndHookMethod(
             camera,
             "onCreate",
@@ -111,7 +112,8 @@ class CameraHooks17(runtime: HostRuntime) {
                 }
             },
         )
-        val maker = Class.forName("com.samsung.android.camera.core2.maker.MakerBase", false, l)
+        val maker =
+            DexSymbols.findClass("com.samsung.android.camera.core2.maker.MakerBase", false, l)
         val power = rt.context.getSystemService<PowerManager?>(PowerManager::class.java)
         thermalStatus = power.getCurrentThermalStatus()
         power.addThermalStatusListener(
@@ -152,7 +154,7 @@ class CameraHooks17(runtime: HostRuntime) {
             },
         )
         val photoMaker =
-            Class.forName("com.samsung.android.camera.core2.maker.PhotoMakerBase", false, l)
+            DexSymbols.findClass("com.samsung.android.camera.core2.maker.PhotoMakerBase", false, l)
         ModernHook.findAndHookMethod(
             photoMaker,
             "startPreviewRepeating",
@@ -168,13 +170,13 @@ class CameraHooks17(runtime: HostRuntime) {
             Reflect.method(
                 photoMaker,
                 "connectCamDevice",
-                Class.forName("com.samsung.android.camera.core2.CamDevice", false, l),
-                Class.forName(
+                DexSymbols.findClass("com.samsung.android.camera.core2.CamDevice", false, l),
+                DexSymbols.findClass(
                     "com.samsung.android.camera.core2.container.DeviceConfiguration",
                     false,
                     l,
                 ),
-                Class.forName(
+                DexSymbols.findClass(
                     "com.samsung.android.camera.core2.callback.MakerStateCallback",
                     false,
                     l,
@@ -194,8 +196,12 @@ class CameraHooks17(runtime: HostRuntime) {
             },
         )
         val callback =
-            Class.forName("com.samsung.android.camera.core2.maker.PhotoMakerBase$6", false, l)
-        val cap = Class.forName("com.samsung.android.camera.core2.CamCapability", false, l)
+            DexSymbols.findClass(
+                "com.samsung.android.camera.core2.maker.PhotoMakerBase$6",
+                false,
+                l,
+            )
+        val cap = DexSymbols.findClass("com.samsung.android.camera.core2.CamCapability", false, l)
         ModernHook.aroundMethod(
             Reflect.method(
                 callback,

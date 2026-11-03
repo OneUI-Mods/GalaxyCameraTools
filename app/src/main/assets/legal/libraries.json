@@ -470,5 +470,29 @@
     "license": "Apache-2.0",
     "asset": "legal/APACHE-2.0.txt",
     "notice": "libxposed contributors. https://github.com/JingMatrix/libxposed-service"
+  },
+  {
+    "id": "org.luckypray:dexkit",
+    "version": "2.3.0",
+    "title": "DexKit",
+    "license": "LGPL-3.0-or-later AND Apache-2.0",
+    "asset": "legal/DEXKIT-2.3.0.txt",
+    "notice": "https://github.com/LuckyPray/DexKit/tree/2.3.0\nCopyright belongs to the respective authors and contributors."
+  },
+  {
+    "id": "com.google.flatbuffers:flatbuffers-java",
+    "version": "23.5.26",
+    "title": "FlatBuffers",
+    "license": "Apache-2.0",
+    "asset": "legal/FLATBUFFERS-23.5.26.txt",
+    "notice": "https://github.com/google/flatbuffers/tree/v23.5.26\nCopyright belongs to the respective authors and contributors."
+  },
+  {
+    "id": "dev.rikka.ndk.thirdparty:cxx",
+    "version": "1.2.0",
+    "title": "LLVM libc++ (Android Prefab)",
+    "license": "Apache-2.0 WITH LLVM-exception",
+    "asset": "legal/LIBCXX-1.2.0.txt",
+    "notice": "https://github.com/RikkaW/libcxx-prefab\nCopyright belongs to the respective authors and contributors."
   }
 ]

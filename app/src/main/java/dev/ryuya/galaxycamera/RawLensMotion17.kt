@@ -11,6 +11,7 @@ import android.hardware.camera2.CameraManager
 import android.util.SizeF
 import android.view.SurfaceView
 import android.view.View
+import dev.ryuya.galaxycamera.compat.DexSymbols
 import kotlin.jvm.JvmStatic
 import kotlin.math.log
 import kotlin.math.max
@@ -91,7 +92,7 @@ class RawLensMotion17(
         try {
             Reflect.call(layer, "cancelAllAnimator")
             val type =
-                Class.forName(
+                DexSymbols.findClass(
                     "com.samsung.android.app.galaxyraw.interfaces.PreviewAnimationLayerManager\$PreviewAnimationType",
                     false,
                     runtime.loader,
@@ -254,7 +255,7 @@ class RawLensMotion17(
         @Throws(Exception::class)
         private fun fieldOfViewScale(runtime: HostRuntime, cameraId: Int): Float {
             val ids =
-                Class.forName(
+                DexSymbols.findClass(
                     "com.samsung.android.app.galaxyraw.engine.request.CameraId",
                     false,
                     runtime.loader,

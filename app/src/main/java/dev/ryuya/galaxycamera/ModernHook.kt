@@ -1,6 +1,8 @@
 package dev.ryuya.galaxycamera
 
 import android.util.Log
+import dev.ryuya.galaxycamera.compat.DexSymbols
+import dev.ryuya.galaxycamera.compat.compatibleDeclaredMethod
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import java.lang.reflect.Executable
@@ -25,7 +27,8 @@ object ModernHook {
 
     @JvmStatic
     @Throws(ClassNotFoundException::class)
-    fun findClass(name: String, loader: ClassLoader?): Class<*> = Class.forName(name, false, loader)
+    fun findClass(name: String, loader: ClassLoader?): Class<*> =
+        DexSymbols.findClass(name, false, loader)
 
     @JvmStatic
     fun findAndHookMethod(owner: Class<*>, name: String, vararg signature: Any?): Handle {
@@ -34,7 +37,7 @@ object ModernHook {
                 ?: throw IllegalArgumentException("Last argument must be a callback")
         val parameters = Array(signature.size - 1) { signature[it] as Class<*> }
         try {
-            val method = owner.getDeclaredMethod(name, *parameters)
+            val method = owner.compatibleDeclaredMethod(name, *parameters)
             method.isAccessible = true
             return hookMethod(method, callback)
         } catch (error: NoSuchMethodException) {

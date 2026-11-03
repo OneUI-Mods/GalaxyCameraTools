@@ -7,6 +7,7 @@ import android.hardware.camera2.CaptureRequest.Key
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.SystemClock
+import dev.ryuya.galaxycamera.compat.DexSymbols
 import java.lang.ref.WeakReference
 import java.lang.reflect.Method
 import kotlin.math.log
@@ -27,10 +28,11 @@ class CameraPanelLight17(runtime: HostRuntime) {
 
     @Throws(Exception::class)
     fun install() {
-        val camera = Class.forName("com.sec.android.app.camera.Camera", false, runtime.loader)
+        val camera =
+            DexSymbols.findClass("com.sec.android.app.camera.Camera", false, runtime.loader)
         changeTorch =
             Reflect.method(
-                Class.forName("p8.p", false, runtime.loader),
+                DexSymbols.findClass("p8.p", false, runtime.loader),
                 "I",
                 Int::class.javaPrimitiveType,
             )
@@ -60,7 +62,11 @@ class CameraPanelLight17(runtime: HostRuntime) {
         // Native mode changes may reset the flash. Keep an explicit Quick Panel torch
         // request until OFF or leaving Camera; saved Photo/Video flash options are untouched.
         val maker =
-            Class.forName("com.samsung.android.camera.core2.maker.MakerBase", false, runtime.loader)
+            DexSymbols.findClass(
+                "com.samsung.android.camera.core2.maker.MakerBase",
+                false,
+                runtime.loader,
+            )
         ModernHook.findAndHookMethod(
             maker,
             "setPublicSetting",
@@ -107,7 +113,7 @@ class CameraPanelLight17(runtime: HostRuntime) {
         if (camera == null || camera.isFinishing()) return false
         val settings = Reflect.get(camera, "j")
         if (Reflect.call(settings!!, "f") as Int != 0) return false
-        val key = Class.forName("l9.f0", false, runtime.loader)
+        val key = DexSymbols.findClass("l9.f0", false, runtime.loader)
         val mode: Int =
             Reflect.method(settings!!.javaClass, "x", key)!!.invoke(
                 settings,

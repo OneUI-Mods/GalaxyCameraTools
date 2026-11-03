@@ -5,6 +5,8 @@ import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.params.OutputConfiguration
 import android.os.Parcel
+import dev.ryuya.galaxycamera.compat.DexSymbols
+import dev.ryuya.galaxycamera.compat.compatibleName
 import io.github.libxposed.api.XposedInterface.Chain
 import java.util.ArrayList
 import java.util.Arrays
@@ -79,7 +81,11 @@ class Camera2Unlock17(runtime: HostRuntime) {
     @Throws(Exception::class)
     private fun routeLensOpenRequests() {
         val device =
-            Class.forName("android.hardware.camera2.impl.CameraDeviceImpl", false, runtime.loader)
+            DexSymbols.findClass(
+                "android.hardware.camera2.impl.CameraDeviceImpl",
+                false,
+                runtime.loader,
+            )
         ModernHook.hookAllConstructors(
             device,
             object : ModernHook.Callback() {
@@ -114,7 +120,7 @@ class Camera2Unlock17(runtime: HostRuntime) {
                         "createReprocessCaptureRequest",
                         "startStreaming",
                     )
-                    .contains(method.getName())
+                    .contains(method.compatibleName())
             )
                 continue
             ModernHook.aroundMethod(
@@ -134,7 +140,7 @@ class Camera2Unlock17(runtime: HostRuntime) {
             )
         }
         for (method in CameraManager::class.java.getDeclaredMethods()) {
-            if (method.getName() != "openCameraDeviceUserAsync") continue
+            if (method.compatibleName() != "openCameraDeviceUserAsync") continue
             ModernHook.hookMethod(
                 method,
                 object : ModernHook.Callback() {
@@ -163,9 +169,13 @@ class Camera2Unlock17(runtime: HostRuntime) {
     @Throws(Exception::class)
     private fun routeSessionOutputs() {
         val device =
-            Class.forName("android.hardware.camera2.impl.CameraDeviceImpl", false, runtime.loader)
+            DexSymbols.findClass(
+                "android.hardware.camera2.impl.CameraDeviceImpl",
+                false,
+                runtime.loader,
+            )
         for (method in device.getDeclaredMethods()) {
-            if (method.getName() != "createCaptureSessionInternal") continue
+            if (method.compatibleName() != "createCaptureSessionInternal") continue
             ModernHook.hookMethod(
                 method,
                 object : ModernHook.Callback() {

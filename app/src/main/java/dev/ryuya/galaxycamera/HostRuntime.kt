@@ -10,6 +10,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.os.Process
+import dev.ryuya.galaxycamera.compat.DexSymbols
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.Volatile
@@ -35,6 +36,7 @@ class HostRuntime(c: Context, l: ClassLoader) {
 
     init {
         context = c
+        DexSymbols.configure(c)
         loader = l
         val thread = HandlerThread("GalaxyCameraTools", Process.THREAD_PRIORITY_BACKGROUND)
         thread.start()

@@ -7,8 +7,8 @@ android {
         applicationId = "dev.ryuya.galaxycamera"
         minSdk = 36
         targetSdk = 37
-        versionCode = 8
-        versionName = "0.1.7-experimental"
+        versionCode = 9
+        versionName = "0.2.0-experimental"
     }
     buildFeatures { buildConfig = true }
     buildTypes { release { isDebuggable = false; isMinifyEnabled = false } }
@@ -19,6 +19,7 @@ android {
     lint { abortOnError = true }
 }
 dependencies {
+    implementation("org.luckypray:dexkit:2.3.0")
     implementation("io.github.libxposed:service:102.0.0")
 
     implementation("com.google.android.material:material:1.14.0")

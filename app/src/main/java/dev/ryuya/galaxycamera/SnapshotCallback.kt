@@ -1,5 +1,6 @@
 package dev.ryuya.galaxycamera
 
+import dev.ryuya.galaxycamera.compat.compatibleName
 import java.lang.reflect.Proxy
 
 /** Zero-argument proxy calls pass a null argument array on the JVM and Android. */
@@ -13,7 +14,7 @@ internal object SnapshotCallback {
                     else -> "Galaxy Camera Tools snapshot callback"
                 }
             } else {
-                if (method.name == "onPreviewSnapshotShow") shown.run()
+                if (method.compatibleName() == "onPreviewSnapshotShow") shown.run()
                 null
             }
         }

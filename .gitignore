@@ -6,3 +6,4 @@ dist/
 evidence/
 *.log
 .DS_Store
+.signing

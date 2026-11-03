@@ -1,5 +1,6 @@
 package dev.ryuya.galaxycamera
 
+import dev.ryuya.galaxycamera.compat.DexSymbols
 import java.lang.Boolean as JavaBoolean
 import java.lang.reflect.Array as ReflectArray
 import java.util.ArrayList
@@ -28,17 +29,17 @@ class VideoModes17(runtime: HostRuntime, hooks: CameraHooks17) {
     @Throws(Exception::class)
     fun install() {
         val l = rt.loader
-        resolution = Class.forName("l9.a2", false, l)
-        commands = Class.forName("l9.j0", false, l)
-        setting = Class.forName("l9.f0", false, l)
-        features = Class.forName("te.f0", false, l)
-        val util = Class.forName("te.c0", false, l)
-        val commandMap = Class.forName("d8.r", false, l)
+        resolution = DexSymbols.findClass("l9.a2", false, l)
+        commands = DexSymbols.findClass("l9.j0", false, l)
+        setting = DexSymbols.findClass("l9.f0", false, l)
+        features = DexSymbols.findClass("te.f0", false, l)
+        val util = DexSymbols.findClass("te.c0", false, l)
+        val commandMap = DexSymbols.findClass("d8.r", false, l)
         uhd = Reflect.value(resolution, "RESOLUTION_3840X2160_120FPS")
         uhdCommand = Reflect.value(commands, "BACK_PRO_CAMCORDER_RESOLUTION_UHD_120")
         backSetting = Reflect.value(setting, "BACK_CAMCORDER_RESOLUTION")
         ModernHook.findAndHookMethod(
-            Class.forName("com.sec.android.app.camera.Camera", false, l),
+            DexSymbols.findClass("com.sec.android.app.camera.Camera", false, l),
             "onResume",
             object : ModernHook.Callback() {
                 override fun afterHookedMethod(p: ModernHook.Param) {
@@ -54,7 +55,7 @@ class VideoModes17(runtime: HostRuntime, hooks: CameraHooks17) {
         // Normalize a saved module-only choice before native session setup reads it.
         // onResume alone runs too late: engine initialization already consumed it.
         ModernHook.findAndHookMethod(
-            Class.forName("vc.j", false, l),
+            DexSymbols.findClass("vc.j", false, l),
             "d",
             setting,
             object : ModernHook.Callback() {
@@ -113,9 +114,9 @@ class VideoModes17(runtime: HostRuntime, hooks: CameraHooks17) {
             },
         )
         val videoMaker =
-            Class.forName("com.samsung.android.camera.core2.maker.VideoMaker", false, l)
+            DexSymbols.findClass("com.samsung.android.camera.core2.maker.VideoMaker", false, l)
         val highRateMaker =
-            Class.forName(
+            DexSymbols.findClass(
                 "com.samsung.android.camera.core2.maker.ProSlowMotionVideoMaker",
                 false,
                 l,
@@ -123,10 +124,10 @@ class VideoModes17(runtime: HostRuntime, hooks: CameraHooks17) {
         // Use the same high-speed request scheduler as native Pro Video at 120 fps.
         // Selecting the class here also lets Samsung replace it when returning to 30/60.
         ModernHook.findAndHookMethod(
-            Class.forName("u8.g", false, l),
+            DexSymbols.findClass("u8.g", false, l),
             "b",
             Int::class.javaPrimitiveType,
-            Class.forName("z8.e1", false, l),
+            DexSymbols.findClass("z8.e1", false, l),
             object : ModernHook.Callback() {
                 override fun afterHookedMethod(p: ModernHook.Param) {
                     if (
@@ -155,11 +156,11 @@ class VideoModes17(runtime: HostRuntime, hooks: CameraHooks17) {
         // Clear only that stream after its native preparation at 120 fps; returning
         // null from the size utility would break the presenter's own calculations.
         ModernHook.findAndHookMethod(
-            Class.forName("re.e", false, l),
+            DexSymbols.findClass("re.e", false, l),
             "Y0",
-            Class.forName("l9.x", false, l),
-            Class.forName("u8.e", false, l),
-            Class.forName("z8.l0", false, l),
+            DexSymbols.findClass("l9.x", false, l),
+            DexSymbols.findClass("u8.e", false, l),
+            DexSymbols.findClass("z8.l0", false, l),
             object : ModernHook.Callback() {
                 override fun afterHookedMethod(p: ModernHook.Param) {
                     if (p.hasThrowable() || !rt.enabled(ConfigProvider.VIDEO) || camera.mode() != 1)
@@ -292,8 +293,8 @@ class VideoModes17(runtime: HostRuntime, hooks: CameraHooks17) {
                 }
             },
         )
-        val ratio = Class.forName("g9.p", false, l)
-        val mapping = Class.forName("g9.q", false, l)
+        val ratio = DexSymbols.findClass("g9.p", false, l)
+        val mapping = DexSymbols.findClass("g9.q", false, l)
         ModernHook.findAndHookMethod(
             mapping,
             "g",

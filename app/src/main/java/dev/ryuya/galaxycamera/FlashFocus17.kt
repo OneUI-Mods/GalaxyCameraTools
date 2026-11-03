@@ -4,6 +4,7 @@ import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.CaptureResult
 import android.hardware.camera2.TotalCaptureResult
 import android.os.SystemClock
+import dev.ryuya.galaxycamera.compat.DexSymbols
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
 import java.lang.reflect.Method
@@ -78,10 +79,14 @@ class FlashFocus17(runtime: HostRuntime, hooks: CameraHooks17) {
     fun install() {
         val loader = runtime.loader
         val makerClass =
-            Class.forName("com.samsung.android.camera.core2.maker.MakerBase", false, loader)
+            DexSymbols.findClass("com.samsung.android.camera.core2.maker.MakerBase", false, loader)
         val photoMakerClass =
-            Class.forName("com.samsung.android.camera.core2.maker.PhotoMakerBase", false, loader)
-        val engineClass = Class.forName("p8.e0", false, loader)
+            DexSymbols.findClass(
+                "com.samsung.android.camera.core2.maker.PhotoMakerBase",
+                false,
+                loader,
+            )
+        val engineClass = DexSymbols.findClass("p8.e0", false, loader)
         setPublicSetting =
             Reflect.method(
                 makerClass,
@@ -92,7 +97,7 @@ class FlashFocus17(runtime: HostRuntime, hooks: CameraHooks17) {
         applySettings = Reflect.method(makerClass, "applySettings")
         nativeLensPosition =
             Reflect.get(
-                Class.forName(
+                DexSymbols.findClass(
                     "com.samsung.android.camera.core2.local.vendorkey.SemCaptureRequest",
                     false,
                     loader,
@@ -115,7 +120,11 @@ class FlashFocus17(runtime: HostRuntime, hooks: CameraHooks17) {
             },
         )
         val previewCallbackClass =
-            Class.forName("com.samsung.android.camera.core2.maker.PhotoMakerBase$6", false, loader)
+            DexSymbols.findClass(
+                "com.samsung.android.camera.core2.maker.PhotoMakerBase$6",
+                false,
+                loader,
+            )
         callbackMaker = Reflect.field(previewCallbackClass, "this$0")
         // Ten metadata samples per second keep the sample fresher than the 350 ms flash limit.
         // No images or camera content leave this process.
@@ -125,10 +134,10 @@ class FlashFocus17(runtime: HostRuntime, hooks: CameraHooks17) {
             }
         )
         ModernHook.findAndHookMethod(
-            Class.forName("p8.p", false, loader),
+            DexSymbols.findClass("p8.p", false, loader),
             "J",
             Boolean::class.javaPrimitiveType,
-            Class.forName("q8.l", false, loader),
+            DexSymbols.findClass("q8.l", false, loader),
             object : ModernHook.Callback() {
                 override fun beforeHookedMethod(call: ModernHook.Param) {
                     if (
@@ -147,7 +156,7 @@ class FlashFocus17(runtime: HostRuntime, hooks: CameraHooks17) {
                             return
                         val currentMaker = latest.maker!!.get()
                         if (currentMaker == null) return
-                        val flashType = Class.forName("l9.k2", false, loader)
+                        val flashType = DexSymbols.findClass("l9.k2", false, loader)
                         val condition: Int = Reflect.call(call.args[1]!!, "f") as Int
                         val flashRequired: Boolean =
                             Reflect.method(
@@ -259,7 +268,7 @@ class FlashFocus17(runtime: HostRuntime, hooks: CameraHooks17) {
         ModernHook.findAndHookMethod(
             engineClass,
             "f",
-            Class.forName("z8.m0", false, loader),
+            DexSymbols.findClass("z8.m0", false, loader),
             object : ModernHook.Callback() {
                 override fun afterHookedMethod(call: ModernHook.Param) {
                     val current: FlashFocus17.FocusHold? = hold
@@ -274,7 +283,7 @@ class FlashFocus17(runtime: HostRuntime, hooks: CameraHooks17) {
             },
         )
         ModernHook.findAndHookMethod(
-            Class.forName("com.sec.android.app.camera.Camera", false, loader),
+            DexSymbols.findClass("com.sec.android.app.camera.Camera", false, loader),
             "onPause",
             object : ModernHook.Callback() {
                 override fun beforeHookedMethod(call: ModernHook.Param) {

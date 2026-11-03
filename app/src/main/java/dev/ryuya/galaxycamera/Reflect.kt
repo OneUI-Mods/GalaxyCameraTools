@@ -1,5 +1,8 @@
 package dev.ryuya.galaxycamera
 
+import dev.ryuya.galaxycamera.compat.compatibleDeclaredField
+import dev.ryuya.galaxycamera.compat.compatibleDeclaredMethod
+import dev.ryuya.galaxycamera.compat.compatibleName
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.List
@@ -30,14 +33,14 @@ object Reflect {
         var c: Class<*>? = type
         while (c != null) {
             try {
-                val f = c.getDeclaredField(name)
+                val f = c.compatibleDeclaredField(name)
                 f!!.setAccessible(true)
                 Reflect.FIELDS.get(type)!!.put(name, f)
                 return f
             } catch (ignored: NoSuchFieldException) {}
             c = c.getSuperclass()
         }
-        throw NoSuchFieldException(type.getName() + "#" + name)
+        throw NoSuchFieldException(type.compatibleName() + "#" + name)
     }
 
     @kotlin.jvm.JvmStatic
@@ -57,14 +60,14 @@ object Reflect {
         var c: Class<*>? = type
         while (c != null) {
             try {
-                val m = c.getDeclaredMethod(name, *args)
+                val m = c.compatibleDeclaredMethod(name, *args)
                 m!!.setAccessible(true)
                 Reflect.METHODS.get(type)!!.put(signature, m)
                 return m
             } catch (ignored: NoSuchMethodException) {}
             c = c.getSuperclass()
         }
-        throw NoSuchMethodException(type.getName() + "#" + name)
+        throw NoSuchMethodException(type.compatibleName() + "#" + name)
     }
 
     @kotlin.jvm.JvmStatic

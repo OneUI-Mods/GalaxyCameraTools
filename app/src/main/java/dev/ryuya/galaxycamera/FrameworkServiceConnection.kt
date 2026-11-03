@@ -2,6 +2,7 @@ package dev.ryuya.galaxycamera
 
 import android.content.Context
 import android.util.Log
+import dev.ryuya.galaxycamera.compat.DexSymbols
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
 import java.util.concurrent.Executors
@@ -18,6 +19,7 @@ object FrameworkServiceConnection {
     }
 
     fun register(context: Context) {
+        DexSymbols.configure(context)
         if (!registered.compareAndSet(false, true)) return
         val applicationId = context.packageName
         XposedServiceHelper.registerListener(

@@ -8,6 +8,7 @@ import android.os.Handler
 import android.view.Choreographer
 import android.view.Choreographer.FrameCallback
 import android.view.View
+import dev.ryuya.galaxycamera.compat.DexSymbols
 import io.github.libxposed.api.XposedInterface.Chain
 import java.lang.ref.WeakReference
 import java.lang.reflect.Constructor
@@ -53,7 +54,7 @@ class PhotoZoomTiming17(runtime: HostRuntime, camera: CameraHooks17) {
             }
         )
         val zoomView =
-            Class.forName(
+            DexSymbols.findClass(
                 "com.sec.android.app.camera.layer.keyscreen.zoom.ZoomView",
                 false,
                 runtime.loader,
@@ -93,7 +94,7 @@ class PhotoZoomTiming17(runtime: HostRuntime, camera: CameraHooks17) {
                 }
             },
         )
-        val stepType = Class.forName("v9.m", false, runtime.loader)
+        val stepType = DexSymbols.findClass("v9.m", false, runtime.loader)
         nativeStep =
             stepType.getDeclaredConstructor(
                 zoomView,
@@ -102,7 +103,7 @@ class PhotoZoomTiming17(runtime: HostRuntime, camera: CameraHooks17) {
                 Int::class.javaPrimitiveType,
             )
         nativeStep!!.setAccessible(true)
-        settingKey = Class.forName("l9.f0", false, runtime.loader)
+        settingKey = DexSymbols.findClass("l9.f0", false, runtime.loader)
         zoomKey = Reflect.value(settingKey, "ZOOM_VALUE")
         ModernHook.hookAllConstructors(
             stepType,
@@ -134,7 +135,7 @@ class PhotoZoomTiming17(runtime: HostRuntime, camera: CameraHooks17) {
                 }
             },
         )
-        val nativeListener = Class.forName("v9.p", false, runtime.loader)
+        val nativeListener = DexSymbols.findClass("v9.p", false, runtime.loader)
         ModernHook.findAndHookMethod(
             nativeListener,
             "onAnimationStart",

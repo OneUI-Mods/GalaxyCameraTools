@@ -2,6 +2,7 @@ package dev.ryuya.galaxycamera
 
 import android.database.ContentObserver
 import android.os.Bundle
+import dev.ryuya.galaxycamera.compat.DexSymbols
 import io.github.libxposed.api.XposedInterface.Chain
 import java.lang.Boolean as JavaBoolean
 import java.lang.ref.WeakReference
@@ -26,13 +27,15 @@ class QuickPanelLight17(runtime: HostRuntime) {
     fun install() {
         val loader = runtime.loader
         val flashlight =
-            Class.forName(
+            DexSymbols.findClass(
                 "com.android.systemui.statusbar.policy.FlashlightControllerImpl",
                 false,
                 loader,
             )
-        val tile = Class.forName("com.android.systemui.qs.tiles.FlashlightTile", false, loader)
-        val expandable = Class.forName("com.android.systemui.animation.Expandable", false, loader)
+        val tile =
+            DexSymbols.findClass("com.android.systemui.qs.tiles.FlashlightTile", false, loader)
+        val expandable =
+            DexSymbols.findClass("com.android.systemui.animation.Expandable", false, loader)
         ModernHook.hookAllConstructors(
             flashlight,
             object : ModernHook.Callback() {
@@ -119,7 +122,7 @@ class QuickPanelLight17(runtime: HostRuntime) {
             },
         )
         val tileState =
-            Class.forName("com.android.systemui.plugins.qs.QSTile\$State", false, loader)
+            DexSymbols.findClass("com.android.systemui.plugins.qs.QSTile\$State", false, loader)
         ModernHook.findAndHookMethod(
             tile,
             "handleUpdateState",
