@@ -5,7 +5,6 @@ import android.util.Log
 import dev.ryuya.galaxycamera.compat.DexSymbols
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
-import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** App-side API 102 handshake. Hook configuration and scope stay on their existing paths. */
@@ -13,9 +12,7 @@ object FrameworkServiceConnection {
     private const val TAG = "OneUIModsBinder"
     private val registered = AtomicBoolean()
     private val worker by lazy {
-        Executors.newSingleThreadExecutor { task ->
-            Thread(task, "XposedServiceMetadata").apply { isDaemon = true }
-        }
+        BackgroundExecutors.serial("XposedServiceMetadata", daemon = true)
     }
 
     fun register(context: Context) {
@@ -45,7 +42,7 @@ object FrameworkServiceConnection {
                 override fun onServiceDied(service: XposedService) {
                     Log.w(TAG, "DISCONNECTED $applicationId")
                 }
-            }
+            },
         )
     }
 }
