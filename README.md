@@ -1,5 +1,7 @@
 # Galaxy Camera Tools
 
+[日本語](README.md) · [English](README.en.md)
+
 Samsung Camera・Camera Assistant・Expert RAWを拡張する、実験的なVectorモジュールです。機能は個別にON／OFFでき、専用アプリとCamera Assistantの設定が連動します。
 
 ## できること
