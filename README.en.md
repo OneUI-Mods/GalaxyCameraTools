@@ -4,6 +4,10 @@
 
 An experimental Vector module extending Samsung Camera, Camera Assistant, and Expert RAW. Features can be switched independently; settings are synchronized between the companion app and Camera Assistant.
 
+## First unlock after boot
+
+Hook initialization that needs settings or cached discovery results waits for the first user unlock after boot. A later ordinary screen lock does not repeat initialization. Existing screen-off power-saving and security behavior is preserved. Unlock delivery is event-driven, with no polling or new resident service.
+
 ## Features
 
 | Feature | Behavior |
