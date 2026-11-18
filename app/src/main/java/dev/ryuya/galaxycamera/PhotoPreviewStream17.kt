@@ -31,7 +31,7 @@ class PhotoPreviewStream17(runtime: HostRuntime, camera: CameraHooks17) {
                 "a",
                 Int::class.javaPrimitiveType,
                 Int::class.javaPrimitiveType,
-            )!!
+            )!!,
         )
         ModernHook.deoptimize(
             Reflect.method(
@@ -39,7 +39,7 @@ class PhotoPreviewStream17(runtime: HostRuntime, camera: CameraHooks17) {
                 "k",
                 Rect::class.java,
                 resolution,
-            )!!
+            )!!,
         )
         // Photo's deferred-surface profile otherwise replaces the chosen dimensions with 1920x1440.
         ModernHook.findAndHookMethod(
@@ -76,7 +76,7 @@ class PhotoPreviewStream17(runtime: HostRuntime, camera: CameraHooks17) {
                                         selected!!.getWidth() +
                                         "X" +
                                         selected!!.getHeight(),
-                                )
+                                ),
                             )
                         }
                     } catch (unsupported: Exception) {
@@ -119,7 +119,7 @@ class PhotoPreviewStream17(runtime: HostRuntime, camera: CameraHooks17) {
                             camera.mode() == 0
                     )
                         ModernHook.log(
-                            "Photo preview configured: " + Reflect.get(call.thisObject!!, "k")
+                            "Photo preview configured: " + Reflect.get(call.thisObject!!, "k"),
                         )
                 }
             },
@@ -129,12 +129,11 @@ class PhotoPreviewStream17(runtime: HostRuntime, camera: CameraHooks17) {
     @Throws(Exception::class)
     private fun choose(requested: Size): Size? {
         val characteristics =
-            runtime.context
-                .getSystemService<CameraManager?>(CameraManager::class.java)
-                .getCameraCharacteristics("20")
+            runtime.context.getSystemService<CameraManager?>(CameraManager::class.java)
+                ?.getCameraCharacteristics("20") ?: return requested
         val outputs =
             characteristics.get<StreamConfigurationMap?>(
-                CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP
+                CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP,
             )
         if (outputs == null) return requested
         val sizes = outputs.getOutputSizes<SurfaceTexture?>(SurfaceTexture::class.java)

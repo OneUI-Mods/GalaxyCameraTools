@@ -1,7 +1,10 @@
 plugins { id("com.android.application") }
+
 android {
     namespace = "dev.ryuya.galaxycamera"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) { minorApiLevel = 2 }
+    }
     buildToolsVersion = "37.0.0"
     defaultConfig {
         applicationId = "dev.ryuya.galaxycamera"
@@ -11,13 +14,19 @@ android {
         versionName = "0.2.2"
     }
     buildFeatures { buildConfig = true }
-    buildTypes { release { isDebuggable = false; isMinifyEnabled = false } }
+    buildTypes {
+        release {
+            isDebuggable = false
+            isMinifyEnabled = false
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
     lint { abortOnError = true }
 }
+
 dependencies {
     implementation("org.luckypray:dexkit:2.3.0")
     implementation("io.github.libxposed:service:102.0.0")
@@ -26,10 +35,16 @@ dependencies {
     compileOnly("io.github.libxposed:api:102.0.0")
     testImplementation("junit:junit:4.13.2")
 }
+
 tasks.register("writeRuntimeDependencyList") {
     doLast {
-        val components = configurations.getByName("releaseRuntimeClasspath").resolvedConfiguration.resolvedArtifacts
-            .map { it.moduleVersion.id.toString() }.toSortedSet()
+        val components =
+            configurations
+                .getByName("releaseRuntimeClasspath")
+                .resolvedConfiguration
+                .resolvedArtifacts
+                .map { it.moduleVersion.id.toString() }
+                .toSortedSet()
         val output = layout.buildDirectory.file("runtime-dependencies.txt").get().asFile
         output.parentFile.mkdirs()
         output.writeText(components.joinToString("\n") + "\n")

@@ -28,7 +28,6 @@ import java.lang.reflect.Method
 import java.util.Arrays
 import java.util.Collections
 import java.util.HashMap
-import java.util.List
 import java.util.Locale
 import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
@@ -55,7 +54,7 @@ class CameraHooks17(runtime: HostRuntime) {
 
     private val previewOverrides: MutableMap<Builder?, CameraHooks17.SavedPreviewFps?>? =
         Collections.synchronizedMap<Builder?, CameraHooks17.SavedPreviewFps?>(
-            WeakHashMap<Builder?, CameraHooks17.SavedPreviewFps?>()
+            WeakHashMap<Builder?, CameraHooks17.SavedPreviewFps?>(),
         )
     private val previewSupport: MutableMap<String?, MutableMap<Size?, Boolean?>?> =
         ConcurrentHashMap<String?, MutableMap<Size?, Boolean?>?>()
@@ -115,13 +114,13 @@ class CameraHooks17(runtime: HostRuntime) {
         val maker =
             DexSymbols.findClass("com.samsung.android.camera.core2.maker.MakerBase", false, l)
         val power = rt.context.getSystemService<PowerManager?>(PowerManager::class.java)
-        thermalStatus = power.getCurrentThermalStatus()
-        power.addThermalStatusListener(
+        thermalStatus = power?.getCurrentThermalStatus() ?: PowerManager.THERMAL_STATUS_SEVERE
+        power?.addThermalStatusListener(
             rt.context.getMainExecutor(),
             OnThermalStatusChangedListener { status: Int -> thermalStatus = status },
         )
         for (method in
-            List.of<Method?>(
+            listOfNotNull(
                 Reflect.method(maker, "setPublicSetting", Key::class.java, Any::class.java),
                 Reflect.method(maker, "setSessionKeys", MutableMap::class.java),
             )) {
@@ -135,7 +134,7 @@ class CameraHooks17(runtime: HostRuntime) {
                                 (CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE == call.args[0])
                             else
                                 (call.args[0] as MutableMap<*, *>).containsKey(
-                                    CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE
+                                    CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
                                 )
                         if (fpsChange) applyPreviewFps(call.thisObject)
                     }
@@ -182,7 +181,7 @@ class CameraHooks17(runtime: HostRuntime) {
                     l,
                 ),
                 Handler::class.java,
-            )!!
+            )!!,
         )
         ModernHook.findAndHookMethod(
             photoMaker,
@@ -343,9 +342,8 @@ class CameraHooks17(runtime: HostRuntime) {
             var characteristics = capabilities.get(id)
             if (characteristics == null) {
                 characteristics =
-                    rt.context
-                        .getSystemService<CameraManager?>(CameraManager::class.java)
-                        .getCameraCharacteristics(id!!)
+                    rt.context.getSystemService<CameraManager?>(CameraManager::class.java)
+                        ?.getCameraCharacteristics(id!!) ?: return
                 capabilities.put(id, characteristics)
             }
             // Cache immutable stream capabilities; live Android/Samsung thermal limits are checked
@@ -353,11 +351,11 @@ class CameraHooks17(runtime: HostRuntime) {
             if (supported == null) {
                 val ranges =
                     characteristics.get<Array<Range<Int>?>?>(
-                        CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES
+                        CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES,
                     )
                 val outputs =
                     characteristics.get<StreamConfigurationMap?>(
-                        CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP
+                        CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP,
                     )
                 val minimum: Long =
                     if (outputs == null) 0
@@ -453,7 +451,7 @@ class CameraHooks17(runtime: HostRuntime) {
                     val pair = if (patternPrefix1) item.key as? Pair<*, *> else null
                     if (patternPrefix1 && pair != null && pair.second is MutableSet<*>) {
                         for (physicalId in (pair.second as Set<*>)) builder.setPhysicalCameraKey<
-                            Range<Int>?
+                            Range<Int>?,
                         >(
                             CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
                             CameraHooks17.PREVIEW_60,
@@ -479,13 +477,13 @@ class CameraHooks17(runtime: HostRuntime) {
                         "cameraHeat=" +
                         cameraHeat +
                         "; " +
-                        stream)
+                        stream),
                 )
             }
         } catch (unsupported: IllegalArgumentException) {
             // A stale or unsupported stream keeps the native setup, without poisoning the host.
             ModernHook.log(
-                "Photo preview: retaining native stream: " + unsupported.javaClass.getSimpleName()
+                "Photo preview: retaining native stream: " + unsupported.javaClass.getSimpleName(),
             )
         } catch (error: ReflectiveOperationException) {
             rt.fail(error)
@@ -524,7 +522,7 @@ class CameraHooks17(runtime: HostRuntime) {
                         zoomResultRange,
                         zoomExposure,
                         zoomHeat,
-                    )
+                    ),
                 )
             zoomUntil = 0
             return
@@ -576,7 +574,7 @@ class CameraHooks17(runtime: HostRuntime) {
                     rt.enabled(ConfigProvider.FPS),
                     result.getRequest().get<Int?>(CameraHooks17.CAMERA_HEAT),
                     stream,
-                )
+                ),
             )
             firstTimestamp = timestamp
             firstFrame = result.getFrameNumber()

@@ -41,3 +41,5 @@ Camera2の追加レンズはVectorが選択したクライアントのプロセ�
 ## CPU・メモリ効率
 
 [変更内容と検証範囲](efficiency.md)を参照してください。
+
+[Build environment / ビルド環境](build-environment.md)

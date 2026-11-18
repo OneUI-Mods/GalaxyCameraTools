@@ -97,7 +97,7 @@ class LicensesActivity : AppCompatActivity() {
                         item.getString("asset"),
                         item.optString("notice"),
                         item.optBoolean("reference"),
-                    )
+                    ),
                 )
             }
         } catch (error: Exception) {
@@ -187,7 +187,7 @@ class LicensesActivity : AppCompatActivity() {
                 }
 
                 override fun afterTextChanged(s: Editable?) {}
-            }
+            },
         )
     }
 
@@ -240,16 +240,16 @@ class LicensesActivity : AppCompatActivity() {
                             rememberList()
                             val ime =
                                 getSystemService<InputMethodManager?>(
-                                    InputMethodManager::class.java
+                                    InputMethodManager::class.java,
                                 )
-                            ime.hideSoftInputFromWindow(root.getWindowToken(), 0)
+                            ime?.hideSoftInputFromWindow(root.getWindowToken(), 0)
                             selected = item.id
                             showDetail(item, null)
-                        }
+                        },
                     )
                     return card
                 }
-            }
+            },
         )
     }
 
@@ -295,7 +295,7 @@ class LicensesActivity : AppCompatActivity() {
         text.setText(value)
         text.setTextAppearance(
             if (heading) com.google.android.material.R.style.TextAppearance_Material3_TitleMedium
-            else com.google.android.material.R.style.TextAppearance_Material3_BodyMedium
+            else com.google.android.material.R.style.TextAppearance_Material3_BodyMedium,
         )
         return text
     }

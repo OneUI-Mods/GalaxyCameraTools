@@ -94,7 +94,7 @@ class CameraPanelLight17(runtime: HostRuntime) {
             Runnable {
                 if (!runtime.enabled(ConfigProvider.PANEL_LIGHT)) stopTorch()
                 publishAndSchedule()
-            }
+            },
         )
     }
 
@@ -128,7 +128,8 @@ class CameraPanelLight17(runtime: HostRuntime) {
             return false
         return (runtime.context
             .getSystemService<PowerManager?>(PowerManager::class.java)
-            .getCurrentThermalStatus() < PowerManager.THERMAL_STATUS_SEVERE)
+            ?.getCurrentThermalStatus()
+            ?.let { it < PowerManager.THERMAL_STATUS_SEVERE } == true)
     }
 
     private fun receiveRequest() {
@@ -156,14 +157,14 @@ class CameraPanelLight17(runtime: HostRuntime) {
                         torchEnabled = requestedEnabled
                         changeTorch!!.invoke(controller, if (requestedEnabled) 2 else 0)
                         runtime.report(
-                            "QUICK PANEL: camera torch " + (if (requestedEnabled) "on" else "off")
+                            "QUICK PANEL: camera torch " + (if (requestedEnabled) "on" else "off"),
                         )
                     } catch (error: Throwable) {
                         torchEnabled = false
                         runtime.fail(error)
                     }
                     publishAndSchedule()
-                }
+                },
             )
         } catch (error: RuntimeException) {
             runtime.report("QUICK PANEL: request unavailable")
@@ -198,7 +199,7 @@ class CameraPanelLight17(runtime: HostRuntime) {
                         .getContentResolver()
                         .call(ConfigProvider.URI!!, "light_state", null, state)
                 } catch (ignored: RuntimeException) {}
-            }
+            },
         )
         if (resumed && runtime.enabled(ConfigProvider.PANEL_LIGHT))
             runtime.main.postDelayed(heartbeat, 1000)

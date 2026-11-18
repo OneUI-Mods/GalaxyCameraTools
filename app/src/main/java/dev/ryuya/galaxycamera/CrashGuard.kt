@@ -26,7 +26,8 @@ class CrashGuard(context: Context) {
         if (previous != Process.myPid() && previous > 0 && now - last >= 0 && now - last < 120000) {
             val am = context.getSystemService<ActivityManager?>(ActivityManager::class.java)
             for (exit in
-                am.getHistoricalProcessExitReasons(context.getPackageName(), previous, 4)) {
+                am?.getHistoricalProcessExitReasons(context.getPackageName(), previous, 4)
+                    .orEmpty()) {
                 val reason = exit.getReason()
                 if (
                     exit.getTimestamp() < last ||
@@ -84,7 +85,7 @@ class CrashGuard(context: Context) {
                 .edit()
                 .putInt("pid", Process.myPid())
                 .putLong("operation", System.currentTimeMillis())
-                .commit()
+                .commit(),
         ) {
             "Unable to persist guard"
         }

@@ -121,7 +121,7 @@ class RawLensMotion17(
             ("Expert RAW lens motion: field-of-view ratio=" +
                 ratio +
                 "; stock curve=" +
-                (stockCurve != null))
+                (stockCurve != null)),
         )
     }
 
@@ -142,14 +142,14 @@ class RawLensMotion17(
         zoom!!.setInterpolator(
             TimeInterpolator { fraction: Float ->
                 LensMotionTiming.phase(fraction)
-            }
+            },
         )
         zoom!!.setDuration(
             LensMotionTiming.duration(
                     if (stockCurve == null) (if (min(ratio, 1f / ratio) < 0.34f) 800 else 200)
-                    else curveDuration
+                    else curveDuration,
                 )
-                .toLong()
+                .toLong(),
         )
         zoom!!.addUpdateListener(
             AnimatorUpdateListener { value: ValueAnimator? ->
@@ -172,7 +172,7 @@ class RawLensMotion17(
                     snapshot.setScaleY(scale)
                     if (previewReady) transformPreview(1f + (1f / ratio - 1f) * (1f - progress))
                 }
-            }
+            },
         )
         zoom!!.addListener(
             object : AnimatorListenerAdapter() {
@@ -183,7 +183,7 @@ class RawLensMotion17(
                         if (fadeFinished) finish()
                     } else if (previewReady) startFade()
                 }
-            }
+            },
         )
         zoom!!.start()
     }
@@ -209,7 +209,7 @@ class RawLensMotion17(
                 val alpha: Float = value!!.getAnimatedValue() as Float
                 snapshot.setAlpha(alpha)
                 blur.setAlpha(alpha)
-            }
+            },
         )
         fade!!.addListener(
             object : AnimatorListenerAdapter() {
@@ -217,7 +217,7 @@ class RawLensMotion17(
                     fadeFinished = true
                     if (!finished && (ratio >= 1f || travelFinished)) finish()
                 }
-            }
+            },
         )
         fade!!.start()
     }
@@ -266,11 +266,15 @@ class RawLensMotion17(
                     cameraId,
                 ) as Int
             val manager =
-                runtime.context.getSystemService<CameraManager?>(CameraManager::class.java)
+                checkNotNull(
+                    runtime.context.getSystemService<CameraManager?>(CameraManager::class.java),
+                ) {
+                    "CameraManager unavailable"
+                }
             val characteristics = manager.getCameraCharacteristics(deviceId.toString())
             val focalLengths =
                 characteristics.get<FloatArray?>(
-                    CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS
+                    CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS,
                 )
             val sensor =
                 characteristics.get<SizeF?>(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE)
@@ -278,7 +282,7 @@ class RawLensMotion17(
                 !(focalLengths == null ||
                     focalLengths.size == 0 ||
                     sensor == null ||
-                    sensor.getWidth() <= 0)
+                    sensor.getWidth() <= 0),
             ) {
                 "Lens geometry is unavailable"
             }
