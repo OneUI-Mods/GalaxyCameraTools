@@ -53,13 +53,13 @@ class HostRuntime(c: Context, l: ClassLoader) {
 
     @Synchronized
     private fun load() {
-        worker.removeCallbacks(retry)
         try {
             val b = context.getContentResolver().call(ConfigProvider.URI!!, "get", null, null)
             checkNotNull(b) { "Missing configuration" }
             options = b
             guard.reset(b.getString("reset", ""))
             available = true
+            worker.removeCallbacks(retry)
             retries.succeeded()
             if (!observing) {
                 context
@@ -96,6 +96,7 @@ class HostRuntime(c: Context, l: ClassLoader) {
                     null,
                     BroadcastOptions.makeBasic().setShareIdentityEnabled(true).toBundle(),
                 )
+                worker.removeCallbacks(retry)
                 worker.postDelayed(retry, delay)
             } else ModernHook.log("Settings unavailable: " + e.javaClass.getSimpleName())
         }
