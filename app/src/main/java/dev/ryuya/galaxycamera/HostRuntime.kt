@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.Volatile
 import kotlin.jvm.JvmField
 import kotlin.math.log
-import kotlin.math.min
 
 /* One configuration reader per host, with no Binder work in per-frame callbacks. */
 class HostRuntime(c: Context, l: ClassLoader) {
@@ -32,7 +31,8 @@ class HostRuntime(c: Context, l: ClassLoader) {
     private val submittedStatus: AtomicReference<String?> = AtomicReference<String?>("")
     @Volatile private var available: Boolean = false
     private var observing: Boolean = false
-    private var attempts: Int = 0
+    private val retries = ConfigurationRetries()
+    private val retry = Runnable { load() }
 
     init {
         context = c
@@ -51,13 +51,16 @@ class HostRuntime(c: Context, l: ClassLoader) {
         return available
     }
 
+    @Synchronized
     private fun load() {
+        worker.removeCallbacks(retry)
         try {
             val b = context.getContentResolver().call(ConfigProvider.URI!!, "get", null, null)
             checkNotNull(b) { "Missing configuration" }
             options = b
             guard.reset(b.getString("reset", ""))
             available = true
+            retries.succeeded()
             if (!observing) {
                 context
                     .getContentResolver()
@@ -78,21 +81,22 @@ class HostRuntime(c: Context, l: ClassLoader) {
             available = false
             // A scoped host need not declare this provider in its original manifest.
             // Ask our explicit receiver to grant visibility, then retry off the UI thread.
-            if (attempts++ < 6) {
+            val delay = retries.nextDelay()
+            if (delay != null) {
                 val request =
                     Intent()
                         .setComponent(
                             ComponentName(
                                 BuildConfig.APPLICATION_ID,
                                 BuildConfig.APPLICATION_ID + ".ConfigurationAccessReceiver",
-                            )
+                            ),
                         )
                 context.sendBroadcast(
                     request,
                     null,
                     BroadcastOptions.makeBasic().setShareIdentityEnabled(true).toBundle(),
                 )
-                worker.postDelayed(Runnable { this.load() }, min(200L shl attempts, 5000L))
+                worker.postDelayed(retry, delay)
             } else ModernHook.log("Settings unavailable: " + e.javaClass.getSimpleName())
         }
     }
@@ -116,7 +120,7 @@ class HostRuntime(c: Context, l: ClassLoader) {
                 if (status == lastStatus) return@Runnable
                 lastStatus = status
                 if (available) sendStatus(status)
-            }
+            },
         )
     }
 
