@@ -68,8 +68,7 @@ class CameraHooks17(runtime: HostRuntime) {
     private var reportedPreviewSize: Size? = null
     @Volatile private var reportedHeat: Int = -1
     @Volatile private var reportedHighRate: Boolean = false
-    private val capabilities: MutableMap<String?, CameraCharacteristics?> =
-        ConcurrentHashMap<String?, CameraCharacteristics?>()
+    private val capabilities = ConcurrentHashMap<String, CameraCharacteristics>()
     private var settingsKey: Class<*>? = null
     private var cameraSettings: Field? = null
     private var readMode: Method? = null
@@ -230,6 +229,10 @@ class CameraHooks17(runtime: HostRuntime) {
         UltraWideLight17(rt).install()
         FlashFocus17(rt, this).install()
         CameraPanelLight17(rt).install()
+        runCatching { CameraPauseAudio17(rt).install(camera) }
+            .onFailure { ModernHook.log("CAMERA_PAUSE_VOICE_UNAVAILABLE ${it.javaClass.simpleName}") }
+        runCatching { CameraResumeReceivers17(rt).install(camera) }
+            .onFailure { ModernHook.log("CAMERA_RESUME_RECEIVERS_UNAVAILABLE ${it.javaClass.simpleName}") }
         rt.ready()
     }
 
@@ -326,6 +329,14 @@ class CameraHooks17(runtime: HostRuntime) {
         rt.report("VIDEO: disabled; restored native 30 fps selection")
     }
 
+    // The stock and lightweight Photo preview paths can ask for the same camera
+    // during one startup. Reuse its immutable characteristics across both hooks.
+    internal fun cameraCharacteristics(id: String): CameraCharacteristics? {
+        capabilities[id]?.let { return it }
+        val manager = rt.context.getSystemService(CameraManager::class.java) ?: return null
+        return capabilities.computeIfAbsent(id, manager::getCameraCharacteristics)
+    }
+
     private fun applyPreviewFps(maker: Any?) {
         if (!rt.enabled(ConfigProvider.FPS) || mode() != 0) return
         try {
@@ -334,7 +345,7 @@ class CameraHooks17(runtime: HostRuntime) {
             if (type != 1 || (shooting != 1 && shooting != 2)) return
             val device = Reflect.get(maker!!, "mCamDevice")
             if (device == null) return
-            val id: String? = Reflect.call(device, "m") as String?
+            val id = Reflect.call(device, "m") as? String ?: return
             val size: Size? = Reflect.get(maker!!, "mMainPreviewSurfaceSize") as Size?
             if (size == null) return
             val sizes =
@@ -342,13 +353,7 @@ class CameraHooks17(runtime: HostRuntime) {
                     ConcurrentHashMap<Size?, Boolean?>()
                 }
             var supported = sizes!!.get(size)
-            var characteristics = capabilities.get(id)
-            if (characteristics == null) {
-                characteristics =
-                    rt.context.getSystemService<CameraManager?>(CameraManager::class.java)
-                        ?.getCameraCharacteristics(id!!) ?: return
-                capabilities.put(id, characteristics)
-            }
+            val characteristics = cameraCharacteristics(id) ?: return
             // Cache immutable stream capabilities; live Android/Samsung thermal limits are checked
             // below.
             if (supported == null) {

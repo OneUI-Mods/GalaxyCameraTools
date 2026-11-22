@@ -3,7 +3,6 @@ package dev.ryuya.galaxycamera
 import android.graphics.Rect
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraManager
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.util.Size
 import dev.ryuya.galaxycamera.compat.DexSymbols
@@ -14,7 +13,7 @@ import kotlin.math.log
 class PhotoPreviewStream17(runtime: HostRuntime, camera: CameraHooks17) {
     private val runtime: HostRuntime
     private val camera: CameraHooks17
-    private val selectedSizes: MutableMap<Size?, Size?> = ConcurrentHashMap<Size?, Size?>()
+    private val selectedSizes = ConcurrentHashMap<Size, Size>()
 
     init {
         this.runtime = runtime
@@ -62,20 +61,16 @@ class PhotoPreviewStream17(runtime: HostRuntime, camera: CameraHooks17) {
                                 Reflect.call(original!!, "m") as Int,
                                 Reflect.call(original!!, "d") as Int,
                             )
-                        var selected = selectedSizes.get(size)
-                        if (selected == null) {
-                            selected = choose(size)
-                            selectedSizes.put(size, selected)
-                        }
+                        val selected = selectedSizes.computeIfAbsent(size, ::choose)
                         if (selected != size) {
                             runtime.guard.arm()
                             call.setResult(
                                 Reflect.value(
                                     resolution,
                                     "RESOLUTION_" +
-                                        selected!!.getWidth() +
+                                        selected.width +
                                         "X" +
-                                        selected!!.getHeight(),
+                                        selected.height,
                                 ),
                             )
                         }
@@ -97,15 +92,11 @@ class PhotoPreviewStream17(runtime: HostRuntime, camera: CameraHooks17) {
                         val settings = Reflect.get(Reflect.get(call.thisObject!!, "a")!!, "j")
                         if (Reflect.call(settings!!, "f") as Int != 0) return
                         val requested = Size(call.args[0] as Int, call.args[1] as Int)
-                        var selected = selectedSizes.get(requested)
-                        if (selected == null) {
-                            selected = choose(requested)
-                            selectedSizes.put(requested, selected)
-                        }
+                        val selected = selectedSizes.computeIfAbsent(requested, ::choose)
                         if (selected == requested) return
                         runtime.guard.arm()
-                        call.args[0] = selected!!.getWidth()
-                        call.args[1] = selected!!.getHeight()
+                        call.args[0] = selected.width
+                        call.args[1] = selected.height
                     } catch (unsupported: Exception) {
                         ModernHook.log("Photo preview stream: keeping native size")
                     }
@@ -127,10 +118,8 @@ class PhotoPreviewStream17(runtime: HostRuntime, camera: CameraHooks17) {
     }
 
     @Throws(Exception::class)
-    private fun choose(requested: Size): Size? {
-        val characteristics =
-            runtime.context.getSystemService<CameraManager?>(CameraManager::class.java)
-                ?.getCameraCharacteristics("20") ?: return requested
+    private fun choose(requested: Size): Size {
+        val characteristics = camera.cameraCharacteristics("20") ?: return requested
         val outputs =
             characteristics.get<StreamConfigurationMap?>(
                 CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP,
@@ -138,7 +127,7 @@ class PhotoPreviewStream17(runtime: HostRuntime, camera: CameraHooks17) {
         if (outputs == null) return requested
         val sizes = outputs.getOutputSizes<SurfaceTexture?>(SurfaceTexture::class.java)
         if (sizes == null) return requested
-        var best: Size? = requested
+        var best = requested
         var bestArea: Long = 0
         for (size in sizes) {
             val area: Long = size.getWidth().toLong() * size.getHeight()
