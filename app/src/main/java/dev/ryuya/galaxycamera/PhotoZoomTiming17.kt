@@ -409,6 +409,11 @@ class PhotoZoomTiming17(runtime: HostRuntime, camera: CameraHooks17) {
         override fun doFrame(frameTimeNanos: Long) {
             if (stopped) return
             try {
+                val elapsed = (max(0, (frameTimeNanos - started) / 1000000)).toInt()
+                if (sampledAt != 0L && frameTimeNanos - sampledAt < 16000000L && elapsed < duration) {
+                    Choreographer.getInstance().postFrameCallback(this)
+                    return
+                }
                 if (
                     generationField.getInt(selection.view).toLong() != selection.generation ||
                         !runningField.getBoolean(selection.view)
@@ -422,13 +427,6 @@ class PhotoZoomTiming17(runtime: HostRuntime, camera: CameraHooks17) {
                         (display != null && !camera.highRatePreviewActive())
                 ) {
                     returnToNative()
-                    return
-                }
-                val elapsed = (max(0, (frameTimeNanos - started) / 1000000)).toInt()
-                if (
-                    sampledAt != 0L && frameTimeNanos - sampledAt < 16000000L && elapsed < duration
-                ) {
-                    Choreographer.getInstance().postFrameCallback(this)
                     return
                 }
                 sampledAt = frameTimeNanos

@@ -34,7 +34,6 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.function.BiConsumer
 import java.util.function.Consumer
 import kotlin.concurrent.Volatile
-import kotlin.jvm.JvmRecord
 import kotlin.jvm.Synchronized
 import kotlin.math.log
 import kotlin.math.max
@@ -44,18 +43,15 @@ class CameraHooks17(runtime: HostRuntime) {
     private val rt: HostRuntime
     @Volatile private var activity: WeakReference<Activity?> = WeakReference<Activity?>(null)
 
-    @JvmRecord
-    private data class SavedPreviewFps(
-        val global: Range<Int>?,
-        val physical: MutableMap<String?, Range<Int>?>?,
-    ) {
-        override fun toString(): String = "SavedPreviewFps[global=$global, physical=$physical]"
+    private class SavedPreviewFps {
+        var ownsGlobal = false
+        var global: Range<Int>? = null
+        val physical = HashMap<String, Range<Int>?>()
     }
 
-    private val previewOverrides: MutableMap<Builder?, CameraHooks17.SavedPreviewFps?>? =
-        Collections.synchronizedMap<Builder?, CameraHooks17.SavedPreviewFps?>(
-            WeakHashMap<Builder?, CameraHooks17.SavedPreviewFps?>(),
-        )
+    private val previewOverrides = Collections.synchronizedMap(
+        WeakHashMap<Builder, SavedPreviewFps>(),
+    )
     private val previewSupport: MutableMap<String?, MutableMap<Size?, Boolean?>?> =
         ConcurrentHashMap<String?, MutableMap<Size?, Boolean?>?>()
     @Volatile private var thermalStatus: Int = 0
@@ -80,7 +76,7 @@ class CameraHooks17(runtime: HostRuntime) {
     private var lastTimestamp: Long = 0
     private var firstFrame: Long = 0
     private var samples: Int = 0
-    private var zoomUntil: Long = 0
+    @Volatile private var zoomUntil: Long = 0
     private var zoomLastTimestamp: Long = 0
     private var zoomIntervals: Long = 0
     private var zoomTotalNanos: Long = 0
@@ -392,79 +388,61 @@ class CameraHooks17(runtime: HostRuntime) {
                     keys != null && keys.contains(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE)
                 physicalFpsSupport.put(id, physicalFps)
             }
-            val builders: MutableMap<*, *>? =
-                Reflect.get(maker!!, "mPreviewRequestBuilderMap") as MutableMap<*, *>?
-            var highRate: Boolean = false
-            var cameraHeat: Int = 0
-            var armed: Boolean = false
-            for (item in builders!!.entries) {
-                val builder = item.value as? Builder
-                if (builder == null) continue
-                val heat = builder.get<Int?>(CameraHooks17.CAMERA_HEAT)
-                cameraHeat = max(cameraHeat, if (heat == null) 0 else heat)
-                if (thermalStatus >= 3 || (heat != null && heat > 0)) {
-                    val saved = previewOverrides!!.remove(builder)
-                    if (saved != null) {
-                        if (!armed) {
-                            rt.guard.arm()
-                            armed = true
-                        }
-                        builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, saved.global)
-                        for (value in saved.physical!!.entries) builder.setPhysicalCameraKey(
-                            CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                            value.value,
-                            value.key!!,
-                        )
-                    }
-                    continue
-                }
-                highRate = true
+            val builders = Reflect.get(maker, "mPreviewRequestBuilderMap") as? Map<*, *> ?: return
+            val fpsKey = CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE
+            var highRate = false
+            var cameraHeat = 0
+            var armed = false
+            fun armForWrite() {
                 if (!armed) {
                     rt.guard.arm()
                     armed = true
                 }
-                val current = builder.get<Range<Int>?>(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE)
-                if (
-                    !previewOverrides!!.containsKey(builder) || CameraHooks17.PREVIEW_60 != current
-                ) {
-                    val originals = HashMap<String?, Range<Int>?>()
-                    run {
-                        val patternPrefix0 = physicalFps
-                        val pair = if (patternPrefix0) item.key as? Pair<*, *> else null
-                        if (patternPrefix0 && pair != null && pair.second is MutableSet<*>) {
-                            for (physicalId in (pair.second as Set<*>)) {
-                                val physicalIdString: String? = physicalId as String?
-                                originals.put(
-                                    physicalIdString!!,
-                                    builder.getPhysicalCameraKey<Range<Int>?>(
-                                        CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                                        physicalIdString!!,
-                                    ),
-                                )
+            }
+
+            for ((key, value) in builders) {
+                val builder = value as? Builder ?: continue
+                val heat = builder.get(CAMERA_HEAT) ?: 0
+                cameraHeat = max(cameraHeat, heat)
+                synchronized(builder) {
+                    val saved = previewOverrides[builder]
+
+                    if (thermalStatus >= 3 || heat > 0) {
+                        if (saved == null) continue
+                        if (saved.ownsGlobal && builder.get(fpsKey) == PREVIEW_60) {
+                            armForWrite()
+                            builder.set(fpsKey, saved.global)
+                        }
+                        for ((physicalId, original) in saved.physical) {
+                            if (builder.getPhysicalCameraKey(fpsKey, physicalId) == PREVIEW_60) {
+                                armForWrite()
+                                builder.setPhysicalCameraKey(fpsKey, original, physicalId)
                             }
                         }
+                        previewOverrides.remove(builder)
+                        continue
                     }
-                    previewOverrides!!.put(
-                        builder,
-                        CameraHooks17.SavedPreviewFps(current, originals),
-                    )
-                }
-                if (CameraHooks17.PREVIEW_60 != current)
-                    builder.set<Range<Int>?>(
-                        CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                        CameraHooks17.PREVIEW_60,
-                    )
-                run {
-                    val patternPrefix1 = physicalFps
-                    val pair = if (patternPrefix1) item.key as? Pair<*, *> else null
-                    if (patternPrefix1 && pair != null && pair.second is MutableSet<*>) {
-                        for (physicalId in (pair.second as Set<*>)) builder.setPhysicalCameraKey<
-                            Range<Int>?,
-                        >(
-                            CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                            CameraHooks17.PREVIEW_60,
-                            physicalId as String,
-                        )
+
+                    highRate = true
+                    val global = builder.get(fpsKey)
+                    if (global != PREVIEW_60) {
+                        armForWrite()
+                        val original = previewOverrides.getOrPut(builder) { SavedPreviewFps() }
+                        builder.set(fpsKey, PREVIEW_60)
+                        original.ownsGlobal = true
+                        original.global = global
+                    }
+                    // Samsung can replace just the physical value while leaving the logical
+                    // value alone. Check both before writing and remember only values we change.
+                    val physicalIds = if (physicalFps) (key as? Pair<*, *>)?.second as? Set<*> else null
+                    for (idValue in physicalIds.orEmpty()) {
+                        val physicalId = idValue as? String ?: continue
+                        val current = builder.getPhysicalCameraKey(fpsKey, physicalId)
+                        if (current == PREVIEW_60) continue
+                        armForWrite()
+                        val original = previewOverrides.getOrPut(builder) { SavedPreviewFps() }
+                        builder.setPhysicalCameraKey(fpsKey, PREVIEW_60, physicalId)
+                        original.physical[physicalId] = current
                     }
                 }
             }

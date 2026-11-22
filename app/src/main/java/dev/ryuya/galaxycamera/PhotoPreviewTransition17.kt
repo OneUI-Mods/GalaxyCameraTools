@@ -141,8 +141,10 @@ class PhotoPreviewTransition17(
                     }
                     runtime.main.removeCallbacks(copyTimeout)
                     try {
-                        cover = FrameLayout(preview.getContext())
-                        cover!!.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+                        pixels.prepareToDraw()
+                        cover = object : FrameLayout(preview.context) {
+                            override fun hasOverlappingRendering(): Boolean = to < from
+                        }
                         cover!!.setClipChildren(true)
                         cover!!.setClipToPadding(true)
                         cover!!.setImportantForAccessibility(
@@ -154,6 +156,8 @@ class PhotoPreviewTransition17(
                             cover!!.addView(background, LayoutParams(-1, -1))
                         }
                         snapshot = image(pixels)
+                        snapshot!!.pivotX = width / 2f
+                        snapshot!!.pivotY = height / 2f
                         if (to < from) softenEdges(snapshot!!)
                         cover!!.addView(snapshot, LayoutParams(-1, -1))
                         val position = LayoutParams(width, height)
@@ -215,8 +219,6 @@ class PhotoPreviewTransition17(
         }
         current = zoom
         val oldScale = LensPreviewGeometry.snapshotScale(from, current)
-        snapshot!!.setPivotX(preview.getWidth() / 2f)
-        snapshot!!.setPivotY(preview.getHeight() / 2f)
         snapshot!!.setScaleX(oldScale)
         snapshot!!.setScaleY(oldScale)
         if (ready && to < from) transformPreview()

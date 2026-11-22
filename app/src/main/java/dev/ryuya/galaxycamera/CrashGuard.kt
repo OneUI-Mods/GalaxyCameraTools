@@ -14,7 +14,7 @@ import kotlin.jvm.Synchronized
 @SuppressLint("ApplySharedPref") // Must survive a host crash immediately after the mutation.
 class CrashGuard(context: Context) {
     private val prefs: SharedPreferences
-    private var blocked: Boolean
+    @Volatile private var blocked: Boolean
     private var armedAt: Long = 0
 
     init {
@@ -59,10 +59,7 @@ class CrashGuard(context: Context) {
         }
     }
 
-    @Synchronized
-    fun allowed(): Boolean {
-        return !blocked
-    }
+    fun allowed(): Boolean = !blocked
 
     @Synchronized
     fun reset(token: String) {
