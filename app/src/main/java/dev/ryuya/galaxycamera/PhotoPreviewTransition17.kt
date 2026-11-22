@@ -150,9 +150,7 @@ class PhotoPreviewTransition17(
                         )
                         if (to < from) {
                             val background = image(pixels)
-                            background.setRenderEffect(
-                                RenderEffect.createBlurEffect(18f, 18f, TileMode.CLAMP)
-                            )
+                            background.setRenderEffect(backgroundBlur)
                             cover!!.addView(background, LayoutParams(-1, -1))
                         }
                         snapshot = image(pixels)
@@ -344,6 +342,10 @@ class PhotoPreviewTransition17(
     }
 
     companion object {
+        // The same immutable blur is valid at every preview size.
+        private val backgroundBlur by lazy {
+            RenderEffect.createBlurEffect(18f, 18f, TileMode.CLAMP)
+        }
         private val ZOOM: Key<Float?> =
             Key<Float?>("samsung.android.scaler.zoomRatio", CameraMetadataTypes.float)
     }

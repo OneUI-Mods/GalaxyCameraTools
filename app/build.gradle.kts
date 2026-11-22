@@ -10,8 +10,8 @@ android {
         applicationId = "dev.ryuya.galaxycamera"
         minSdk = 36
         targetSdk = 37
-        versionCode = 12
-        versionName = "0.2.3"
+        versionCode = 14
+        versionName = "0.2.5"
     }
     buildFeatures { buildConfig = true }
     buildTypes {

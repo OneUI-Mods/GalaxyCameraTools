@@ -1,7 +1,6 @@
 package dev.ryuya.galaxycamera
 
 import android.app.Activity
-import android.database.ContentObserver
 import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.CaptureRequest.Key
 import android.os.Bundle
@@ -79,17 +78,8 @@ class CameraPanelLight17(runtime: HostRuntime) {
                 }
             },
         )
-        runtime.context
-            .getContentResolver()
-            .registerContentObserver(
-                CameraLightRelay.COMMAND_URI!!,
-                false,
-                object : ContentObserver(runtime.worker) {
-                    override fun onChange(own: Boolean) {
-                        receiveRequest()
-                    }
-                },
-            )
+        runtime.observe(requireNotNull(CameraLightRelay.COMMAND_URI), ::receiveRequest)
+        runtime.onReloadReady { !resumed && !torchEnabled }
         runtime.onChanged(
             Runnable {
                 if (!runtime.enabled(ConfigProvider.PANEL_LIGHT)) stopTorch()

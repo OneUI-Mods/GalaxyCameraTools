@@ -9,6 +9,10 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
+import android.os.Message
+import android.net.Uri
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 import android.os.Process
 import dev.ryuya.galaxycamera.compat.DexSymbols
 import java.util.concurrent.CopyOnWriteArrayList
@@ -30,7 +34,54 @@ class HostRuntime(c: Context, l: ClassLoader) {
     private var lastStatus: String = ""
     private val submittedStatus: AtomicReference<String?> = AtomicReference<String?>("")
     @Volatile private var available: Boolean = false
+    private val thread = HandlerThread("GalaxyCameraTools", Process.THREAD_PRIORITY_BACKGROUND)
+    private val workerActivity = ReentrantLock()
+    private val observers = ArrayList<ContentObserver>()
+    private val readiness = ArrayList<() -> Boolean>()
+    private val cleanup = ArrayList<() -> Unit>()
     private var observing: Boolean = false
+    @Volatile private var retired = false
+
+    fun onReloadReady(test: () -> Boolean) { readiness.add(test) }
+    fun onRetire(action: () -> Unit) { cleanup.add(action) }
+
+    @Synchronized
+    fun observe(uri: Uri, action: () -> Unit) {
+        if (retired) return
+        val observer = object : ContentObserver(worker) {
+            override fun onChange(own: Boolean) {
+                if (!retired) action()
+            }
+        }
+        context.contentResolver.registerContentObserver(uri, false, observer)
+        observers.add(observer)
+    }
+
+    fun prepareRetirement(save: () -> Unit): Boolean {
+        if (!workerActivity.tryLock()) return false
+        return try {
+            if (!readiness.all { it() }) return false
+            save()
+            retired = true
+            true
+        } finally {
+            workerActivity.unlock()
+        }
+    }
+
+    fun finishRetirement() {
+        worker.removeCallbacksAndMessages(null)
+        main.removeCallbacksAndMessages(null)
+        thread.quit()
+        for (observer in observers) {
+            runCatching { context.contentResolver.unregisterContentObserver(observer) }
+                .onFailure { ModernHook.log("Camera observer cleanup failed: ${it.javaClass.simpleName}") }
+        }
+        observers.clear()
+        changed.clear()
+        cleanup.asReversed().forEach { runCatching(it) }
+        cleanup.clear()
+    }
     private val retries = ConfigurationRetries()
     private val retry = Runnable { load() }
 
@@ -38,9 +89,14 @@ class HostRuntime(c: Context, l: ClassLoader) {
         context = c
         DexSymbols.configure(c)
         loader = l
-        val thread = HandlerThread("GalaxyCameraTools", Process.THREAD_PRIORITY_BACKGROUND)
         thread.start()
-        worker = Handler(thread.getLooper())
+        worker = object : Handler(thread.looper) {
+            override fun dispatchMessage(message: Message) {
+                workerActivity.withLock {
+                    if (!retired) super.dispatchMessage(message)
+                }
+            }
+        }
         guard = CrashGuard(c)
         // The first preview request can arrive before a background read completes.
         // Read once before installing changes; visibility retries remain asynchronous.
@@ -53,6 +109,7 @@ class HostRuntime(c: Context, l: ClassLoader) {
 
     @Synchronized
     private fun load() {
+        if (retired) return
         try {
             val b = context.getContentResolver().call(ConfigProvider.URI!!, "get", null, null)
             checkNotNull(b) { "Missing configuration" }
@@ -62,17 +119,7 @@ class HostRuntime(c: Context, l: ClassLoader) {
             worker.removeCallbacks(retry)
             retries.succeeded()
             if (!observing) {
-                context
-                    .getContentResolver()
-                    .registerContentObserver(
-                        ConfigProvider.URI!!,
-                        false,
-                        object : ContentObserver(worker) {
-                            override fun onChange(own: Boolean) {
-                                load()
-                            }
-                        },
-                    )
+                observe(requireNotNull(ConfigProvider.URI), ::load)
                 observing = true
             }
             for (listener in changed) main.post(listener!!)
@@ -103,7 +150,7 @@ class HostRuntime(c: Context, l: ClassLoader) {
     }
 
     fun enabled(key: String?): Boolean {
-        return available && !failed && guard.allowed() && options!!.getBoolean(key, false)
+        return !retired && available && !failed && guard.allowed() && options!!.getBoolean(key, false)
     }
 
     fun configured(key: String?): Boolean {
@@ -115,7 +162,7 @@ class HostRuntime(c: Context, l: ClassLoader) {
     }
 
     fun report(status: String) {
-        if (status == submittedStatus.getAndSet(status)) return
+        if (retired || status == submittedStatus.getAndSet(status)) return
         worker.post(
             Runnable {
                 if (status == lastStatus) return@Runnable

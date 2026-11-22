@@ -45,6 +45,7 @@ class PhotoZoomTiming17(runtime: HostRuntime, camera: CameraHooks17) {
 
     @Throws(Exception::class)
     fun install() {
+        runtime.onReloadReady { motion == null }
         camera.onZoomResult(
             Consumer { result: TotalCaptureResult? ->
                 val active: PhotoZoomTiming17.Motion? = motion

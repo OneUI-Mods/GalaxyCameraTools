@@ -211,6 +211,7 @@ class ExpertRawHooks17(runtime: HostRuntime) {
                 }
             }
         )
+        rt.onReloadReady { pending == null && motion == null && queuedLens == null }
         rt.ready()
     }
 

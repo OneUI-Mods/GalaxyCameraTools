@@ -101,24 +101,27 @@ class CameraHooks17(runtime: HostRuntime) {
         modeKey = Reflect.value(settingsKey, "MODE_CUSTOM_SETTING")
         cameraSettings = Reflect.field(camera, "j")
         readMode = Reflect.method(DexSymbols.findClass("vc.j", false, l), "x", settingsKey)
-        ModernHook.findAndHookMethod(
-            camera,
-            "onCreate",
-            Bundle::class.java,
-            object : ModernHook.Callback() {
-                override fun beforeHookedMethod(p: ModernHook.Param) {
-                    activity = WeakReference<Activity?>(p.thisObject as Activity?)
-                }
-            },
-        )
+        val rememberActivity = object : ModernHook.Callback() {
+            override fun beforeHookedMethod(p: ModernHook.Param) {
+                activity = WeakReference(p.thisObject as? Activity)
+            }
+        }
+        ModernHook.findAndHookMethod(camera, "onCreate", Bundle::class.java, rememberActivity)
+        ModernHook.findAndHookMethod(camera, "onResume", rememberActivity)
+        rt.onReloadReady {
+            val host = activity.get()
+            val engine = host?.let { Reflect.get(it, "n") }
+            engine == null || Reflect.get(engine, "B").toString() != "PREVIEWING"
+        }
         val maker =
             DexSymbols.findClass("com.samsung.android.camera.core2.maker.MakerBase", false, l)
         val power = rt.context.getSystemService<PowerManager?>(PowerManager::class.java)
         thermalStatus = power?.getCurrentThermalStatus() ?: PowerManager.THERMAL_STATUS_SEVERE
-        power?.addThermalStatusListener(
-            rt.context.getMainExecutor(),
-            OnThermalStatusChangedListener { status: Int -> thermalStatus = status },
-        )
+        if (power != null) {
+            val listener = OnThermalStatusChangedListener { thermalStatus = it }
+            power.addThermalStatusListener(rt.context.getMainExecutor(), listener)
+            rt.onRetire { power.removeThermalStatusListener(listener) }
+        }
         for (method in
             listOfNotNull(
                 Reflect.method(maker, "setPublicSetting", Key::class.java, Any::class.java),

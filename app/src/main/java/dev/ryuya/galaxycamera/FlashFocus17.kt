@@ -77,6 +77,7 @@ class FlashFocus17(runtime: HostRuntime, hooks: CameraHooks17) {
 
     @Throws(Exception::class)
     fun install() {
+        runtime.onReloadReady { hold == null }
         val loader = runtime.loader
         val makerClass =
             DexSymbols.findClass("com.samsung.android.camera.core2.maker.MakerBase", false, loader)

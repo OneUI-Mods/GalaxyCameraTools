@@ -6,10 +6,23 @@ import dev.ryuya.galaxycamera.compat.compatibleDeclaredMethod
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import java.lang.reflect.Executable
+import java.util.concurrent.locks.ReentrantReadWriteLock
 
 /** Project-local adapter for API 102's interceptor chain. */
 object ModernHook {
     @Volatile private var module: XposedModule? = null
+    private val calls = ReentrantReadWriteLock()
+    @Volatile private var retired = false
+
+    fun tryRetire(retire: () -> Boolean): Boolean {
+        val lock = calls.writeLock()
+        if (!lock.tryLock()) return false
+        return try {
+            retire().also { if (it) retired = true }
+        } finally {
+            lock.unlock()
+        }
+    }
 
     @JvmStatic
     fun attach(value: XposedModule) {
@@ -47,18 +60,13 @@ object ModernHook {
 
     @JvmStatic
     fun hookMethod(executable: Executable, callback: Callback): Handle {
-        val handle =
-            requireModule()
-                .hook(executable)
-                .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
-                .intercept { chain ->
-                    val param = Param(chain)
-                    callback.before(param)
-                    param.proceed(chain)
-                    callback.after(param)
-                    param.resultOrThrow()
-                }
-        return Handle { handle.unhook() }
+        return aroundMethod(executable) { chain ->
+            val param = Param(chain)
+            callback.before(param)
+            param.proceed(chain)
+            callback.after(param)
+            param.resultOrThrow()
+        }
     }
 
     fun interface Around {
@@ -71,7 +79,18 @@ object ModernHook {
             requireModule()
                 .hook(executable)
                 .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
-                .intercept(around::run)
+                .intercept { chain ->
+                    if (retired) chain.proceed()
+                    else {
+                        val lock = calls.readLock()
+                        lock.lock()
+                        try {
+                            if (retired) chain.proceed() else around.run(chain)
+                        } finally {
+                            lock.unlock()
+                        }
+                    }
+                }
         return Handle { handle.unhook() }
     }
 

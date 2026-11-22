@@ -7,3 +7,5 @@ evidence/
 *.log
 .DS_Store
 .signing
+
+__pycache__/

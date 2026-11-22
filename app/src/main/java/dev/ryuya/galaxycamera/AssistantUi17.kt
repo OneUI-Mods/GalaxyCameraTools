@@ -74,6 +74,7 @@ class AssistantUi17(runtime: HostRuntime) {
                     }
             }
         )
+        rt.onReloadReady { states.isEmpty() }
         rt.ready()
     }
 

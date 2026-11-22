@@ -113,6 +113,12 @@ class Camera2Unlock17(runtime: HostRuntime) {
         )
         // Android serializes the logical ID into every request. Keep that ID at 0
         // while native builders are created; public getId() still names the selected lens.
+        ModernHook.findAndHookMethod(device, "close", object : ModernHook.Callback() {
+            override fun afterHookedMethod(call: ModernHook.Param) {
+                if (!call.hasThrowable()) openedDevices?.remove(call.thisObject)
+            }
+        })
+        runtime.onReloadReady { openedDevices?.isEmpty() == true }
         for (method in device.getDeclaredMethods()) {
             if (
                 !java.util.Set.of<String?>(

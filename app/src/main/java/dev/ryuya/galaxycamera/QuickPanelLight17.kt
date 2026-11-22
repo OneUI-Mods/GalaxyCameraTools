@@ -1,6 +1,5 @@
 package dev.ryuya.galaxycamera
 
-import android.database.ContentObserver
 import android.os.Bundle
 import dev.ryuya.galaxycamera.compat.DexSymbols
 import io.github.libxposed.api.XposedInterface.Chain
@@ -147,17 +146,8 @@ class QuickPanelLight17(runtime: HostRuntime) {
                 }
             },
         )
-        runtime.context
-            .getContentResolver()
-            .registerContentObserver(
-                CameraLightRelay.STATE_URI!!,
-                false,
-                object : ContentObserver(runtime.worker) {
-                    override fun onChange(own: Boolean) {
-                        readCameraState()
-                    }
-                },
-            )
+        runtime.observe(requireNotNull(CameraLightRelay.STATE_URI), ::readCameraState)
+        runtime.onReloadReady { !cameraAvailable }
         runtime.onChanged(Runnable { runtime.worker.post(Runnable { this.readCameraState() }) })
         runtime.worker.post(Runnable { this.readCameraState() })
         runtime.ready()
