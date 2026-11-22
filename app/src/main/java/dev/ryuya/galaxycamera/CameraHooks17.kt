@@ -64,14 +64,15 @@ class CameraHooks17(runtime: HostRuntime) {
     private var reportedPreviewSize: Size? = null
     @Volatile private var reportedHeat: Int = -1
     @Volatile private var reportedHighRate: Boolean = false
+    @Volatile private var sampledHeat: Int = 0
+    @Volatile var previewFrameNumber: Long = Long.MIN_VALUE
+        private set
     private val capabilities = ConcurrentHashMap<String, CameraCharacteristics>()
     private var settingsKey: Class<*>? = null
     private var cameraSettings: Field? = null
     private var readMode: Method? = null
     private var modeKey: Any? = null
     private var stream: String = ""
-    private var zoomResultRange: Range<Int>? = null
-    private var zoomExposure: Long? = null
     private var firstTimestamp: Long = 0
     private var lastTimestamp: Long = 0
     private var firstFrame: Long = 0
@@ -81,8 +82,7 @@ class CameraHooks17(runtime: HostRuntime) {
     private var zoomIntervals: Long = 0
     private var zoomTotalNanos: Long = 0
     private var zoomSlowIntervals: Long = 0
-    private var zoomRequest: Range<Int>? = null
-    private var zoomHeat: Int? = null
+    private var zoomLastResult: TotalCaptureResult? = null
 
     init {
         rt = runtime
@@ -103,6 +103,13 @@ class CameraHooks17(runtime: HostRuntime) {
         }
         ModernHook.findAndHookMethod(camera, "onCreate", Bundle::class.java, rememberActivity)
         ModernHook.findAndHookMethod(camera, "onResume", rememberActivity)
+        ModernHook.aroundMethod(camera.getDeclaredMethod("onPause")) { chain ->
+            try {
+                chain.proceed()
+            } finally {
+                stopZoomMeasurement()
+            }
+        }
         rt.onReloadReady {
             val host = activity.get()
             val engine = host?.let { Reflect.get(it, "n") }
@@ -243,6 +250,10 @@ class CameraHooks17(runtime: HostRuntime) {
     fun highRatePreviewActive(): Boolean {
         return thermalStatus < 3 && reportedHeat == 0 && reportedHighRate
     }
+
+    fun thermalZoomLimited(): Boolean =
+        thermalStatus >= PowerManager.THERMAL_STATUS_SEVERE || sampledHeat > 0 ||
+            (rt.configured(ConfigProvider.FPS) && reportedHeat > 0)
 
     @Throws(ReflectiveOperationException::class)
     fun previewSurface(): SurfaceView? {
@@ -485,16 +496,21 @@ class CameraHooks17(runtime: HostRuntime) {
         zoomTotalNanos = zoomSlowIntervals
         zoomIntervals = zoomTotalNanos
         zoomLastTimestamp = zoomIntervals
-        zoomRequest = null
-        zoomResultRange = null
-        zoomExposure = null
-        zoomHeat = null
+        zoomLastResult = null
     }
 
     @Synchronized
-    private fun measureZoom(result: TotalCaptureResult, timestamp: Long) {
+    private fun stopZoomMeasurement() {
+        zoomUntil = 0
+        zoomLastResult = null
+    }
+
+    @Synchronized
+    private fun measureZoom(result: TotalCaptureResult, timestamp: Long, now: Long) {
         if (zoomUntil == 0L) return
-        if (SystemClock.uptimeMillis() >= zoomUntil) {
+        if (now >= zoomUntil) {
+            val last = zoomLastResult
+            val request = last?.request
             if (zoomIntervals > 0)
                 ModernHook.log(
                     String.format(
@@ -504,13 +520,14 @@ class CameraHooks17(runtime: HostRuntime) {
                         zoomIntervals * 1000000000.0 / zoomTotalNanos,
                         zoomIntervals,
                         zoomSlowIntervals,
-                        zoomRequest,
-                        zoomResultRange,
-                        zoomExposure,
-                        zoomHeat,
+                        request?.get(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE),
+                        last?.get(CaptureResult.CONTROL_AE_TARGET_FPS_RANGE),
+                        last?.get(CaptureResult.SENSOR_EXPOSURE_TIME),
+                        request?.get(CAMERA_HEAT),
                     ),
                 )
             zoomUntil = 0
+            zoomLastResult = null
             return
         }
         val interval: Long = timestamp - zoomLastTimestamp
@@ -520,21 +537,24 @@ class CameraHooks17(runtime: HostRuntime) {
             if (interval > 25000000L) zoomSlowIntervals++
         }
         zoomLastTimestamp = timestamp
-        zoomRequest =
-            result.getRequest().get<Range<Int>?>(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE)
-        zoomResultRange = result.get<Range<Int>?>(CaptureResult.CONTROL_AE_TARGET_FPS_RANGE)
-        zoomExposure = result.get<Long?>(CaptureResult.SENSOR_EXPOSURE_TIME)
-        zoomHeat = result.getRequest().get<Int?>(CameraHooks17.CAMERA_HEAT)
+        // The report uses only the last result. Read its metadata once at the end.
+        zoomLastResult = result
     }
 
     private fun measure(result: TotalCaptureResult) {
         samples++
+        previewFrameNumber = result.frameNumber
         val now = SystemClock.uptimeMillis()
-        if (zoomUntil == 0L && now < nextStatisticsRead) return
-        nextStatisticsRead = now + 200
+        val readStatistics = now >= nextStatisticsRead
+        if (readStatistics) {
+            nextStatisticsRead = now + 200
+            sampledHeat = result.request.get(CAMERA_HEAT) ?: 0
+        }
+        val zooming = zoomUntil != 0L
+        if (!zooming && !readStatistics) return
         val timestamp = result.get<Long?>(CaptureResult.SENSOR_TIMESTAMP)
         if (timestamp == null) return
-        measureZoom(result, timestamp)
+        if (zooming) measureZoom(result, timestamp, now)
         if (firstTimestamp == 0L || timestamp <= lastTimestamp) {
             firstTimestamp = timestamp
             firstFrame = result.getFrameNumber()

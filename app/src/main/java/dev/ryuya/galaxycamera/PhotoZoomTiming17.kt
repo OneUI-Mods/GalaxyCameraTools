@@ -290,6 +290,10 @@ class PhotoZoomTiming17(runtime: HostRuntime, camera: CameraHooks17) {
         @JvmField @Volatile var stopped: Boolean = false
         @JvmField @Volatile var display: PhotoPreviewTransition17? = null
         @JvmField @Volatile var appliedZoom: Int = Int.MIN_VALUE
+        @Volatile private var cameraWrites = 0
+        private var thermalPaced = false
+        private var lastCameraTarget = Int.MIN_VALUE
+        private val thermalPacer = ThermalZoomPacer()
 
         init {
             this.selection = selection
@@ -327,6 +331,7 @@ class PhotoZoomTiming17(runtime: HostRuntime, camera: CameraHooks17) {
                         if (value != appliedZoom) {
                             writeZoom.invoke(settings, value, zoomKey)
                             appliedZoom = value
+                            cameraWrites++
                         }
                     },
                     Runnable { runtime.main.post(Runnable { this.complete() }) },
@@ -346,6 +351,7 @@ class PhotoZoomTiming17(runtime: HostRuntime, camera: CameraHooks17) {
             if (
                 selection.mode == 0 &&
                     runtime.enabled(ConfigProvider.FPS) &&
+                    !camera.thermalZoomLimited() &&
                     camera.highRatePreviewActive() &&
                     camera.rearCamera()
             ) {
@@ -437,17 +443,25 @@ class PhotoZoomTiming17(runtime: HostRuntime, camera: CameraHooks17) {
                             LensMotionTiming.curveTime(elapsed, duration, nativeDuration),
                         ) * 1000
                     )
+                val finished = elapsed >= duration
                 if (value != lastZoom) {
                     updateButtons.invoke(selection.view, value)
                     updateLabel.invoke(selection.view, value)
                     lastZoom = value
                     frames++
-                    if (display == null) requests.submit(value, elapsed >= duration)
-                } else if (elapsed >= duration && display == null) {
-                    requests.submit(value, true)
                 }
-                if (display != null) display!!.sample(value / 1000f, elapsed >= duration)
-                if (elapsed < duration) {
+                val handoff = display
+                if (handoff != null) {
+                    handoff.sample(value / 1000f, finished)
+                } else if (finished || value != lastCameraTarget) {
+                    val thermal = selection.mode == 0 && camera.thermalZoomLimited()
+                    thermalPaced = thermalPaced || thermal
+                    if (!thermal || thermalPacer.accept(camera.previewFrameNumber, frameTimeNanos, finished)) {
+                        lastCameraTarget = value
+                        requests.submit(value, finished)
+                    }
+                }
+                if (!finished) {
                     Choreographer.getInstance().postFrameCallback(this)
                 }
             } catch (error: Throwable) {
@@ -470,7 +484,8 @@ class PhotoZoomTiming17(runtime: HostRuntime, camera: CameraHooks17) {
                 (Reflect.get(selection.view, "L") as Handler).post(
                     Reflect.get(selection.view, "S") as Runnable
                 )
-                ModernHook.log("Lens motion: completed; display samples=" + frames)
+                ModernHook.log("Lens motion: completed; display samples=$frames; camera writes=$cameraWrites; " +
+                    "thermal pacing=$thermalPaced; target=$appliedZoom")
             } catch (error: ReflectiveOperationException) {
                 returnToNative()
                 runtime.fail(error)
