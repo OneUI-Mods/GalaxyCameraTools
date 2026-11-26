@@ -1,5 +1,7 @@
 # Galaxy Camera Tools
 
+インストールにはAndroid 17（API 37）以降が必要です。
+
 [日本語](README.md) · [English](README.en.md)
 
 Samsung Camera・Camera Assistant・Expert RAWを拡張する、実験的なVectorモジュールです。機能は個別にON／OFFでき、専用アプリとCamera Assistantの設定が連動します。
@@ -26,7 +28,7 @@ Samsung Camera・Camera Assistant・Expert RAWを拡張する、実験的なVect
 
 初期実験版の対象はGalaxy S26 Ultra（SM-S948Q）、Android 17 / One UI 9 BZI9です。Samsung Camera 17.0.00.43、Camera Assistant 5.0.00.7、Expert RAW 6.0.02.8を対象にしています。対応するroot環境とlibxposed API 102対応Vectorが必要です。
 
-別の端末・ファームウェア・対象アプリの版へ、未確認の撮影処理を適用しません。Android 16向けの既存アプリや互換処理を置き換える更新ではありません。
+別の端末・ファームウェア・対象アプリの版へ、未確認の撮影処理を適用しません。
 
 ## 導入・使い方
 

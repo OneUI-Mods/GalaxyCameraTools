@@ -1,5 +1,7 @@
 # Galaxy Camera Tools
 
+Installation requires Android 17 (API 37) or later.
+
 [日本語](README.md) · English
 
 An experimental Vector module extending Samsung Camera, Camera Assistant, and Expert RAW. Features can be switched independently; settings are synchronized between the companion app and Camera Assistant.
@@ -26,7 +28,7 @@ Hook initialization that needs settings or cached discovery results waits for th
 
 The initial experimental target is Galaxy S26 Ultra (SM-S948Q), Android 17 / One UI 9 BZI9, with Samsung Camera 17.0.00.43, Camera Assistant 5.0.00.7, and Expert RAW 6.0.02.8. A supported root environment and Vector with libxposed API 102 are required.
 
-Unverified capture paths are not applied to other devices, firmware, or target versions. This is not an update that replaces existing Android 16 apps or their compatibility paths.
+Unverified capture paths are not applied to other devices, firmware, or target versions.
 
 ## Installation and use
 
